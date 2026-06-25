@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import RangeFilter, { type Bound } from './RangeFilter';
 import Term from './Term';
-import { n } from '../lib/util';
+import Tour from './Tour';
+import { n, dotRadius } from '../lib/util';
 
 // Plain-language decoder for the GCM (climate-model) codenames.
 const GCM_DESC: Record<string, string> = {
@@ -95,7 +96,7 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
       if (wd.pressure == null) continue;
       const x = xp(wd.flux), y = yp(wd.pressure);
       c.fillStyle = tColor(wd.tsurf); c.globalAlpha = 0.85;
-      c.beginPath(); c.arc(x, y, 4, 0, 6.2832); c.fill();
+      c.beginPath(); c.arc(x, y, dotRadius(wd.radius), 0, 6.2832); c.fill();
       pts.push({ x, y, w: wd });
     }
     c.globalAlpha = 1; ptsRef.current = pts;
@@ -107,8 +108,8 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
     c.fillStyle = '#cfd8ff'; c.textAlign = 'center'; c.textBaseline = 'bottom'; c.fillText('Earth', ex, ey - 7);
 
     const ring = (p: { x: number; y: number }, col: string, r: number, lw: number) => { c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); c.arc(p.x, p.y, r, 0, 6.2832); c.stroke(); };
-    if (selected && selected.pressure != null) ring({ x: xp(selected.flux), y: yp(selected.pressure) }, '#fff', 7, 2);
-    if (hover) ring({ x: xp(hover.w.flux), y: yp(hover.w.pressure ?? 1) }, '#fff', 6, 1.5);
+    if (selected && selected.pressure != null) ring({ x: xp(selected.flux), y: yp(selected.pressure) }, '#fff', dotRadius(selected.radius) + 3, 2);
+    if (hover) ring({ x: xp(hover.w.flux), y: yp(hover.w.pressure ?? 1) }, '#fff', dotRadius(hover.w.radius) + 3, 1.5);
   }
 
   useEffect(() => {
@@ -148,7 +149,7 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
         <span><span className="sw" style={{ background: '#f0b24a' }} />Hot</span>
         <span><span className="sw" style={{ background: '#e24b4a' }} />Runaway</span>
         <span><span className="sw ring" />Earth analog</span>
-        <span style={{ color: '#69728f' }}>· color = simulated surface temperature</span>
+        <span style={{ color: '#69728f' }}>· color = surface temperature · dot size = planet size</span>
       </div>
     </div>
   );
@@ -198,26 +199,60 @@ function DetailTw({ world, siblings }: { world: TwWorld | null; siblings: TwWorl
   );
 }
 
+const GCM_LABEL: Record<string, string> = { exoplasim: 'ExoPlaSim', um: 'Met Office UM', exocam: 'ExoCAM', 'exocam-pre2022': 'ExoCAM ’21', lfric: 'LFRic' };
+const CLIMATE_VIEWS: [string, string][] = [['all', 'All climates'], ['temperate', 'Temperate'], ['frozen', 'Frozen'], ['hot', 'Hot'], ['runaway', 'Runaway']];
+const inClimate = (t: number, c: string) =>
+  c === 'all' || (c === 'frozen' && t < 240) || (c === 'temperate' && t >= 273 && t <= 320) || (c === 'hot' && t >= 320 && t < 373) || (c === 'runaway' && t >= 373);
+
+// A short narrated tour: hand-pick a representative snowball, Earth-twin, runaway, and a
+// "models disagree" planet, with plain-language story text. Resolved from the data so it can't break.
+interface TwStop { world: TwWorld; title: string; text: string; }
+function twTourStops(worlds: TwWorld[]): TwStop[] {
+  const has = worlds.filter((w) => w.pressure != null && w.radius != null);
+  const best = (pool: TwWorld[], score: (w: TwWorld) => number) => pool.slice().sort((a, b) => score(a) - score(b))[0];
+  const k = (w: TwWorld) => `${Math.round(w.tsurf)} K (${kToC(w.tsurf)})`;
+  const snowball = best(has.filter((w) => w.tsurf < 230), (w) => Math.abs(w.radius! - 1) + Math.abs((w.pressure ?? 1) - 1));
+  const earth = best(has.filter((w) => w.tsurf >= 273 && w.tsurf <= 300), (w) => Math.abs(w.flux - 1361) / 300 + Math.abs((w.pressure ?? 1) - 1) + Math.abs(w.tsurf - 288) / 40);
+  const runaway = best(has.filter((w) => w.tsurf >= 373), (w) => Math.abs(w.flux - 1361) / 300);
+  const groups: Record<number, TwWorld[]> = {};
+  for (const w of worlds) if (w.planet != null) (groups[w.planet] ||= []).push(w);
+  let disagree: TwWorld | undefined, spread = -1;
+  for (const g of Object.values(groups)) {
+    if (g.length < 2) continue;
+    const s = Math.max(...g.map((x) => x.tsurf)) - Math.min(...g.map((x) => x.tsurf));
+    if (s > spread) { spread = s; disagree = g.slice().sort((a, b) => a.tsurf - b.tsurf)[0]; }
+  }
+  const raw: (TwStop | undefined)[] = [
+    snowball && { world: snowball, title: 'A frozen snowball world', text: `About the size of Earth, but it gets too little starlight to stay warm — so its whole surface freezes over at ${k(snowball)}. Frozen worlds like this show up blue, mostly on the left.` },
+    earth && { world: earth, title: 'An Earth twin', text: `The sweet spot: roughly Earth's starlight and a familiar atmosphere give a mild ${k(earth)} climate where liquid water could exist. These are the green dots near the white "Earth" marker.` },
+    runaway && { world: runaway, title: 'A runaway, Venus-like world', text: `Too much starlight or greenhouse gas tips this world into a scorching runaway at ${k(runaway)} — any oceans would boil away. These glow red.` },
+    disagree && { world: disagree, title: 'One planet, models disagree', text: `This exact planet was run through several climate models and they don't agree on how hot it gets — see "Same planet, other climate models" on the right. Closing that gap is what the ThousandWorlds benchmark is for.` },
+  ];
+  return raw.filter((s): s is TwStop => !!s);
+}
+
 export default function ThousandWorlds() {
   const [worlds, setWorlds] = useState<TwWorld[] | null>(null);
   const [meta, setMeta] = useState<TwMeta | null>(null);
   const [gcms, setGcms] = useState<Set<string>>(new Set());
-  const [tempOnly, setTempOnly] = useState(false);
+  const [climate, setClimate] = useState('all');
   const [ranges, setRanges] = useState<Record<string, Bound>>({});
-  const [showParams, setShowParams] = useState(false);
   const [selected, setSelected] = useState<TwWorld | null>(null);
+  const [tourStop, setTourStop] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([fetch('/thousandworlds.json').then((r) => r.json()), fetch('/thousandworlds-meta.json').then((r) => r.json())])
       .then(([w, m]: [TwWorld[], TwMeta]) => { setWorlds(w); setMeta(m); });
   }, []);
 
+  const twStops = useMemo(() => (worlds ? twTourStops(worlds) : []), [worlds]);
+
   const filtered = useMemo(() => (worlds ?? []).filter((w) =>
     (gcms.size === 0 || gcms.has(w.gcm))
-    && (!tempOnly || (w.tsurf >= 273 && w.tsurf <= 320))
-    && RANGE_KEYS.every((rk) => inRange(w[rk.key] as number | null, ranges[rk.key]))), [worlds, gcms, tempOnly, ranges]);
+    && inClimate(w.tsurf, climate)
+    && RANGE_KEYS.every((rk) => inRange(w[rk.key] as number | null, ranges[rk.key]))), [worlds, gcms, climate, ranges]);
   const activeRanges = Object.values(ranges).filter((b) => b && (b[0] != null || b[1] != null)).length;
-  const temperate = useMemo(() => filtered.filter((w) => w.tsurf >= 273 && w.tsurf <= 320).length, [filtered]);
+  const temperate = useMemo(() => (worlds ?? []).filter((w) => w.tsurf >= 273 && w.tsurf <= 320).length, [worlds]);
   // Other models that ran the SAME planet — the benchmark's cross-GCM comparison.
   const siblings = useMemo(
     () => (selected && selected.planet != null && worlds ? worlds.filter((w) => w.planet === selected.planet).sort((a, b) => a.tsurf - b.tsurf) : []),
@@ -227,48 +262,89 @@ export default function ThousandWorlds() {
   if (!worlds || !meta) return <div className="loading">Loading {`1,659`} simulated climates…</div>;
 
   const toggleGcm = (g: string) => { const s = new Set(gcms); s.has(g) ? s.delete(g) : s.add(g); setGcms(s); };
+  const surprise = () => { const pool = worlds.filter((w) => w.pressure != null); setSelected(pool[Math.floor(Math.random() * pool.length)]); };
+  const gotoStop = (i: number) => { const s = twStops[i]; if (!s) return; setTourStop(i); setSelected(s.world); };
+  const startTour = () => { setGcms(new Set()); setClimate('all'); setRanges({}); gotoStop(0); };
+  const nextStop = () => { if (tourStop == null) return; if (tourStop >= twStops.length - 1) setTourStop(null); else gotoStop(tourStop + 1); };
 
   return (
-    <div className="main tw">
+    <div className="main tw3">
+      <aside className="sidebar">
+        <div className="starthere">
+          <button className="cta" onClick={startTour}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M14.5 9.5l-1.5 4-4 1.5 1.5-4z" /></svg>
+            New here? Take the tour
+          </button>
+          <button className="cta ghost" onClick={surprise}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M21 16v5h-5M15 15l6 6M3 8V3h5M9 9L3 3" /></svg>
+            Surprise me
+          </button>
+        </div>
+
+        <div className="section-label">What am I looking at?</div>
+        <p className="twexplain">
+          Every dot is a <b>made-up planet</b> put through a climate simulator — a <Term name="gcm">global climate model</Term>. Give it a star, an atmosphere and a spin, and the simulator works out how hot its surface gets and whether water could stay liquid. The map sorts them by how much <Term name="flux">starlight</Term> they get (left→right) and how thick their air is (bottom→top); color shows the resulting temperature.
+        </p>
+        <p className="twexplain" style={{ marginTop: 8 }}>
+          The <b>five models</b> below are different simulators built by different teams — ExoPlaSim, the Met Office’s UM, ExoCAM (two versions) and LFRic. Picking one, or comparing them on the same planet, shows where the science agrees and where it still disagrees.
+        </p>
+
+        <div className="section-label">Climates</div>
+        <div className="chips">
+          {CLIMATE_VIEWS.map(([k, label]) => (
+            <button key={k} className={`chip${climate === k ? ' active' : ''}`} onClick={() => setClimate(k)}>{label}</button>
+          ))}
+        </div>
+
+        <div className="section-label">Climate model</div>
+        <div className="chips">
+          {meta.gcms.map(([g, ct]) => (
+            <button key={g} className={`chip${gcms.size === 0 || gcms.has(g) ? ' active' : ''}`} onClick={() => toggleGcm(g)} title={`${GCM_DESC[g] ?? g} · ${ct} simulations`}>{GCM_LABEL[g] ?? g}</button>
+          ))}
+        </div>
+        <div className="twmodels">
+          <div><b>ExoPlaSim</b> — a fast, simplified model</div>
+          <div><b>Met Office UM</b> — the UK's main climate model</div>
+          <div><b>ExoCAM</b> — NCAR's exoplanet model (two versions)</div>
+          <div><b>LFRic</b> — the Met Office's next-generation model</div>
+        </div>
+
+        <div className="section-label">Refine the planet</div>
+        {RANGE_KEYS.map((rk) => (
+          <RangeFilter
+            key={rk.key} label={rk.label} unit={rk.unit}
+            domain={meta.ranges[rk.key] as [number, number]} scale={rk.scale}
+            value={ranges[rk.key] ?? [null, null]}
+            onChange={(v) => setRanges((r) => ({ ...r, [rk.key]: v }))}
+            fmt={(x) => n(x, rk.dp)}
+          />
+        ))}
+        {activeRanges > 0 && <button className="linkbtn" onClick={() => setRanges({})}>reset parameters</button>}
+      </aside>
+
       <div className="center">
         <div className="statbar">
           <div className="stat big"><div className="v">{filtered.length.toLocaleString()}<span className="u">of {meta.count.toLocaleString()}</span></div><div className="k">simulated worlds</div></div>
           <div className="stat"><div className="v">{temperate.toLocaleString()}</div><div className="k">temperate (0–47 °C)</div></div>
           <div className="stat"><div className="v">{meta.gcms.length}</div><div className="k">climate models</div></div>
-          <span className="spacer" />
-          <div className="chips">
-            {meta.gcms.map(([g, ct]) => (
-              <button key={g} className={`chip${gcms.size === 0 || gcms.has(g) ? ' active' : ''}`} onClick={() => toggleGcm(g)} title={`${GCM_DESC[g] ?? g} · ${ct} simulations`}>{g}</button>
-            ))}
-            <button className={`chip${tempOnly ? ' active' : ''}`} onClick={() => setTempOnly((v) => !v)}>temperate only</button>
-            <button className={`chip${showParams || activeRanges ? ' active' : ''}`} onClick={() => setShowParams((v) => !v)}>
-              refine parameters{activeRanges ? ` (${activeRanges})` : ''} {showParams ? '▴' : '▾'}
-            </button>
-          </div>
         </div>
-        {showParams && (
-          <div className="twparams">
-            {RANGE_KEYS.map((rk) => (
-              <RangeFilter
-                key={rk.key} label={rk.label} unit={rk.unit}
-                domain={meta.ranges[rk.key] as [number, number]} scale={rk.scale}
-                value={ranges[rk.key] ?? [null, null]}
-                onChange={(v) => setRanges((r) => ({ ...r, [rk.key]: v }))}
-                fmt={(x) => n(x, rk.dp)}
-              />
-            ))}
-            {activeRanges > 0 && <button className="linkbtn" onClick={() => setRanges({})}>reset parameters</button>}
-          </div>
+        {tourStop != null && twStops[tourStop] && (
+          <Tour
+            index={tourStop} total={twStops.length}
+            title={twStops[tourStop].title} text={twStops[tourStop].text} worldName={`Simulation #${twStops[tourStop].world.sid}`}
+            onPrev={() => { if (tourStop > 0) gotoStop(tourStop - 1); }} onNext={nextStop} onExit={() => setTourStop(null)}
+          />
         )}
         <div className="twintro">
-          <b>How to read this:</b> each dot is one simulated planet run through a <Term name="gcm">global climate model</Term>. Too little <Term name="flux">starlight</Term> (left) or a thin <Term name="pressure">atmosphere</Term> freezes it <span style={{ color: '#6fa8ff' }}>blue</span>; the right balance keeps liquid water <span style={{ color: '#46d49a' }}>green</span>; too much starlight or greenhouse gas runs it away to a hot, Venus-like state <span style={{ color: '#e24b4a' }}>red</span>.
+          <b>How to read this:</b> too little <Term name="flux">starlight</Term> (left) or a thin <Term name="pressure">atmosphere</Term> freezes a world <span style={{ color: '#6fa8ff' }}>blue</span>; the right balance keeps liquid water <span style={{ color: '#46d49a' }}>green</span>; too much runs it away to a hot, Venus-like state <span style={{ color: '#e24b4a' }}>red</span>. The white dot is an <b>Earth twin</b> for scale.
         </div>
         <div className="twcredit">
-          Simulated climates from the <b>ThousandWorlds</b> benchmark — Stevenson, Mak, Wolf, Sergeev, Hammond, Mayne &amp; Cranmer (2026), {meta.license}. Each dot is a real GCM run: a planet's parameters in, its climate out.
+          Simulated climates from the <b>ThousandWorlds</b> benchmark — Stevenson, Mak, Wolf, Sergeev, Hammond, Mayne &amp; Cranmer (2026), {meta.license}. A planet's parameters in, its climate out.
           <a href={meta.paper} target="_blank" rel="noreferrer"> paper</a> ·<a href={meta.code} target="_blank" rel="noreferrer"> code</a>
         </div>
         <ClimateScatter worlds={filtered} selected={selected} onSelect={setSelected} />
       </div>
+
       <DetailTw world={selected} siblings={siblings} />
     </div>
   );

@@ -8,10 +8,11 @@ interface Props {
   onPrev: () => void;
   onNext: () => void;
   onExit: () => void;
+  total?: number;
 }
 
-export default function Tour({ index, title, text, worldName, onPrev, onNext, onExit }: Props) {
-  const total = TOUR.length;
+export default function Tour({ index, title, text, worldName, onPrev, onNext, onExit, total: totalProp }: Props) {
+  const total = totalProp ?? TOUR.length;
   const last = index === total - 1;
   return (
     <div className="tourbar">
