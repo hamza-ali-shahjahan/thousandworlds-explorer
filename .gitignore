@@ -1,0 +1,20 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vite
+
+# build artifacts
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# personal / local editor + tooling config
+.claude/settings.local.json
+
+# autonomous goal-loop process log (internal build journal, not part of the app)
+.goal/
+
+# Raw API pulls can be regenerated with `npm run data`
+data/raw/

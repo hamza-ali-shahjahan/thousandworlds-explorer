@@ -1,0 +1,57 @@
+{
+  "generated": "2026-06-23T20:35:33.273Z",
+  "source": "NASA Exoplanet Archive — Planetary Systems Composite Parameters (pscomppars)",
+  "total": 6298,
+  "with_radius": 6248,
+  "with_teq": 5777,
+  "with_distance": 6271,
+  "habitable_band": 53,
+  "first_year": 1992,
+  "latest_year": 2026,
+  "methods": [
+    [
+      "Transit",
+      4653
+    ],
+    [
+      "Radial Velocity",
+      1186
+    ],
+    [
+      "Microlensing",
+      278
+    ],
+    [
+      "Imaging",
+      97
+    ],
+    [
+      "Transit Timing Variations",
+      41
+    ],
+    [
+      "Eclipse Timing Variations",
+      17
+    ],
+    [
+      "Orbital Brightness Modulation",
+      9
+    ],
+    [
+      "Pulsar Timing",
+      8
+    ],
+    [
+      "Astrometry",
+      6
+    ],
+    [
+      "Pulsation Timing Variations",
+      2
+    ],
+    [
+      "Disk Kinematics",
+      1
+    ]
+  ]
+}
