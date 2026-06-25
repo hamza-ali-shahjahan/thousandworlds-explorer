@@ -73,15 +73,48 @@ Playful to poke at, strict about what counts as a finding — and honest through
 *simulated analogies*, never observations or habitability claims, and points at *places worth a closer
 look*, never "planets that must exist."
 
-## Run locally
+## See it — or run your own copy
 
-```bash
-npm install
-npm run dev        # → http://localhost:5173
-```
+**Most people don't need to install anything.** The whole explorer runs in your browser:
 
-That's the whole setup — **no API keys, no backend, no database, no big download.** Both datasets ship
-pre-built in `public/`, so it works offline right after install.
+### 👉 [thousandworlds-explorer.vercel.app](https://thousandworlds-explorer.vercel.app)
+
+Open that link and you're done — that's the full experience. The steps below are *only* if you'd like
+to run your own local copy.
+
+<details open>
+<summary><b>Run it on your own computer — step by step (~5 minutes, no experience needed)</b></summary>
+
+<br>
+
+You'll need a **terminal** (the *Terminal* app on macOS, *PowerShell* on Windows) and **Node.js**.
+
+1. **Install Node.js.** Go to **[nodejs.org](https://nodejs.org)**, download the **LTS** version, and run
+   the installer (it bundles `npm`, used below). To check it worked, open your terminal and type
+   `node -v` — you should see a version like `v20.x`.
+2. **Get the code.** On the **[repo page](https://github.com/hamza-ali-shahjahan/thousandworlds-explorer)**,
+   click the green **`Code`** button → **Download ZIP**, then unzip it.
+   *(Prefer git? `git clone https://github.com/hamza-ali-shahjahan/thousandworlds-explorer.git`)*
+3. **Open that folder in your terminal.** Type `cd ` (with a trailing space), drag the unzipped folder
+   onto the terminal window, and press **Enter**. Your prompt should now show the folder's name.
+4. **Install the dependencies** — one time, downloads what the app needs (takes a minute):
+   ```bash
+   npm install
+   ```
+5. **Start it up:**
+   ```bash
+   npm run dev
+   ```
+   It prints a local link — usually **http://localhost:5173**.
+6. **Open that link in your browser.** You should see the explorer. 🎉 (To stop it later, press
+   **`Ctrl + C`** in the terminal.)
+
+**If it doesn't work:** `npm: command not found` (or `node: command not found`) means Node.js isn't
+installed yet — redo step 1 and restart your terminal. Everything runs on your own machine: **no
+account, no API keys, no database, no big download, and no data leaves your computer.** Both datasets
+ship pre-built, so it even works offline after install.
+
+</details>
 
 ## Refresh the data
 
