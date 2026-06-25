@@ -134,14 +134,18 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
     c.fillText('stellar flux reaching the planet  (W/m²)  →', (M.l + px1) / 2, h - 2);
     c.save(); c.translate(13, (pTop + pBot) / 2); c.rotate(-Math.PI / 2); c.textBaseline = 'top'; c.fillText('surface pressure (bar)', 0, 0); c.restore();
 
-    // When a world is selected (incl. during the tour), dim every other dot so the
-    // chosen one pops; a hovered dot brightens too so the map stays explorable.
+    // Focus: a selected world (incl. each tour stop) OR a hovered dot pops while the rest
+    // dim. Hover dims gently — a spotlight that follows the cursor, so the map feels alive
+    // and is obviously clickable; a click/selection dims harder so the pick really stands out.
     const sel = selected && selected.pressure != null && worlds.includes(selected) ? selected : null;
+    const hv = hover ? hover.w : null;
+    const focusing = sel || hv;
+    const dim = sel ? 0.14 : 0.32;
     const pts: { x: number; y: number; w: TwWorld }[] = [];
     for (const wd of worlds) {
       if (wd.pressure == null) continue;
       const x = xp(wd.flux), y = yp(wd.pressure), r = dotRadius(wd.radius);
-      const a = sel ? (wd === sel || (hover && hover.w === wd) ? 0.95 : 0.14) : 0.82;
+      const a = focusing ? (wd === sel || wd === hv ? 0.97 : dim) : 0.82;
       c.fillStyle = tColor(wd.tsurf);
       c.globalAlpha = a * 0.2;                                        // soft luminous halo
       c.beginPath(); c.arc(x, y, r + 2.2, 0, 6.2832); c.fill();
@@ -174,6 +178,9 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [worlds, selected, hover]);
+  // Clear any pinned hover tooltip when the selection changes by other means (tour / surprise /
+  // click), so a stale tooltip can't linger while the mouse hasn't moved off the canvas.
+  useEffect(() => { setHover(null); }, [selected]);
 
   function onMove(e: React.MouseEvent) {
     const rect = cvRef.current!.getBoundingClientRect();
@@ -475,6 +482,7 @@ export default function ThousandWorlds() {
   const [selected, setSelected] = useState<TwWorld | null>(null);
   const [tourStop, setTourStop] = useState<number | null>(null);
   const [modal, setModal] = useState<'models' | 'wizard' | null>(null);
+  const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('tw_tour_taken'));
 
   useEffect(() => {
     Promise.all([fetch('/thousandworlds.json').then((r) => r.json()), fetch('/thousandworlds-meta.json').then((r) => r.json())])
@@ -511,7 +519,7 @@ export default function ThousandWorlds() {
   const selectNoGcms = () => setGcms(new Set());
   const surprise = () => { const pool = worlds.filter((w) => w.pressure != null); setSelected(pool[Math.floor(Math.random() * pool.length)]); };
   const gotoStop = (i: number) => { const s = twStops[i]; if (!s) return; setTourStop(i); setSelected(s.world); };
-  const startTour = () => { setGcms(allGcms()); setClimate('all'); setRanges({}); gotoStop(0); };
+  const startTour = () => { localStorage.setItem('tw_tour_taken', '1'); setTourTaken(true); setGcms(allGcms()); setClimate('all'); setRanges({}); gotoStop(0); };
   const nextStop = () => { if (tourStop == null) return; if (tourStop >= twStops.length - 1) setTourStop(null); else gotoStop(tourStop + 1); };
 
   return (
@@ -523,7 +531,7 @@ export default function ThousandWorlds() {
             New here? Start here
           </button>
           <div className="ctarow">
-            <button className="cta ghost" onClick={startTour}>
+            <button className={`cta ghost tourcta${tourTaken ? '' : ' pulse'}`} onClick={startTour}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M14.5 9.5l-1.5 4-4 1.5 1.5-4z" /></svg>
               Take the tour
             </button>
@@ -600,7 +608,7 @@ export default function ThousandWorlds() {
           />
         )}
         <div className="twintro">
-          <b>How to read this:</b> too little <Term name="flux">starlight</Term> (left) or a thin <Term name="pressure">atmosphere</Term> freezes a world <span style={{ color: '#6fa8ff' }}>blue</span>; the right balance keeps liquid water <span style={{ color: '#46d49a' }}>green</span>; too much runs it away to a hot, Venus-like state <span style={{ color: '#e24b4a' }}>red</span>. The white dot is an <b>Earth twin</b> for scale.
+          <b>How to read this:</b> too little <Term name="flux">starlight</Term> (left) or a thin <Term name="pressure">atmosphere</Term> freezes a world <span style={{ color: '#6fa8ff' }}>blue</span>; the right balance keeps liquid water <span style={{ color: '#46d49a' }}>green</span>; too much runs it away to a hot, Venus-like state <span style={{ color: '#e24b4a' }}>red</span>. The white dot is an <b>Earth twin</b> for scale. <span className="twhint">Hover a dot to spotlight it · click to open its world.</span>
         </div>
         <div className="twcredit">
           Simulated climates from the <b>ThousandWorlds</b> benchmark — Stevenson, Mak, Wolf, Sergeev, Hammond, Mayne &amp; Cranmer (2026), {meta.license}. A planet's parameters in, its climate out.

@@ -152,6 +152,7 @@ body.modal-open { overflow: hidden; }
 .twintro { font-size: 13px; line-height: 1.55; color: var(--text); padding: 11px 20px 4px; }
 .twintro b { font-weight: 500; }
 .twintro .term { color: var(--text); }
+.twintro .twhint { color: var(--text-faint); }
 .twparams {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 4px 22px; padding: 12px 20px 14px; border-bottom: 1px solid var(--border-soft);
@@ -186,6 +187,18 @@ body.modal-open { overflow: hidden; }
 .cta.ghost:hover { border-color: #36406a; color: var(--text); }
 .ctarow { display: flex; gap: 8px; }
 .ctarow .cta { flex: 1; justify-content: center; padding: 9px 8px; font-size: 12.5px; }
+
+/* gentle persistent pulse drawing the eye to the tour until it's been taken (feature G) */
+@keyframes ctapulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(111, 168, 255, 0); }
+  50% { box-shadow: 0 0 14px 1px rgba(111, 168, 255, 0.34); }
+}
+.cta.pulse { animation: ctapulse 2.4s ease-in-out infinite; }
+.cta.ghost.pulse { border-color: var(--accent); color: var(--text); }
+.cta.pulse:hover { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cta.pulse { animation: none; box-shadow: 0 0 10px 0 rgba(111, 168, 255, 0.25); }
+}
 
 /* first-run wizard (feature A) */
 .wiztop { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 14px; }

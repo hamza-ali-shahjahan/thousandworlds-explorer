@@ -41,16 +41,17 @@ interface Props {
   onTour: () => void;
   onSurprise: () => void;
   open: boolean;
+  tourPulse?: boolean;
 }
 
-export default function Sidebar({ filters, update, meta, bandCounts, methodCounts, activePreset, onPreset, onReset, onTour, onSurprise, open }: Props) {
+export default function Sidebar({ filters, update, meta, bandCounts, methodCounts, activePreset, onPreset, onReset, onTour, onSurprise, open, tourPulse }: Props) {
   const toggle = <T,>(set: Set<T>, v: T): Set<T> => {
     const s = new Set(set); s.has(v) ? s.delete(v) : s.add(v); return s;
   };
   return (
     <aside className={`sidebar${open ? ' open' : ''}`}>
       <div className="starthere">
-        <button className="cta" onClick={onTour}>
+        <button className={`cta${tourPulse ? ' pulse' : ''}`} onClick={onTour}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9" /><path d="M14.5 9.5l-1.5 4-4 1.5 1.5-4z" />
           </svg>

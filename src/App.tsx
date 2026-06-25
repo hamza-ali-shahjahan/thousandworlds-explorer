@@ -113,6 +113,7 @@ export default function App() {
   const [tourStop, setTourStop] = useState<number | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [dataset, setDataset] = useState<'nasa' | 'tw'>('nasa');
+  const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('nasa_tour_taken'));
 
   useEffect(() => {
     Promise.all([fetch('/worlds.json').then((r) => r.json()), fetch('/meta.json').then((r) => r.json())])
@@ -163,7 +164,7 @@ export default function App() {
 
   const onSort = (k: Key) => { if (k === sortKey) setDir((dd) => (dd === 1 ? -1 : 1)); else { setSortKey(k); setDir(1); } };
   const gotoStop = (i: number) => { const r = resolveStop(i, worlds); if (!r) return; setTourStop(i); setSelected(r.world); setView('map'); };
-  const startTour = () => { setFilters(defaultFilters(meta)); setActivePreset('all'); setNavOpen(false); gotoStop(0); };
+  const startTour = () => { localStorage.setItem('nasa_tour_taken', '1'); setTourTaken(true); setFilters(defaultFilters(meta)); setActivePreset('all'); setNavOpen(false); gotoStop(0); };
   const nextStop = () => { if (tourStop == null) return; if (tourStop >= TOUR.length - 1) setTourStop(null); else gotoStop(tourStop + 1); };
   const surprise = () => { setTourStop(null); setSelected(randomWorld(worlds)); setView('map'); setNavOpen(false); };
   const update = (p: Partial<Filters>) => { setFilters((f) => ({ ...f!, ...p })); setActivePreset(null); };
@@ -200,7 +201,7 @@ export default function App() {
           filters={filters} update={update} meta={meta}
           bandCounts={bandCounts} methodCounts={methodCounts}
           activePreset={activePreset} onPreset={applyPreset} onReset={reset}
-          onTour={startTour} onSurprise={surprise} open={navOpen}
+          onTour={startTour} onSurprise={surprise} open={navOpen} tourPulse={!tourTaken}
         />
         <div className="center">
           <StatBar
