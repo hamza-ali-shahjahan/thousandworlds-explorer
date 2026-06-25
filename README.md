@@ -1,5 +1,7 @@
 # ThousandWorlds
 
+**🔭 Live demo → https://thousandworlds-explorer.vercel.app**
+
 An explorable map of every world humanity has discovered — built on the
 [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/). Each dot is a
 real confirmed exoplanet. Plotted by orbital period (how long its year is) and size,
