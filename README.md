@@ -47,6 +47,26 @@ parameter space, and turn a hunch into a clearly-articulated, *falsifiable* hypo
 throughout — these are simulations and global means, never habitability claims. Built in the open, in
 the spirit of the ThousandWorlds benchmark it stands on.
 
+## The playground — Imagine · Lab &nbsp;·&nbsp; 🚧 coming soon (building now)
+
+<p align="center">
+  <img src="docs/playground.svg" alt="How the Imagine Lab turns real detections and simulated physics into an articulated hypothesis" width="100%">
+</p>
+
+A third tab, **Imagine · Lab**, is in active development — an *honest hypothesis forge*. The plan:
+
+- **Overlay & translate** — drop a real discovered planet onto the simulated climate physics and
+  re-estimate its surface climate from its nearest simulated analogs (with *your* stated atmosphere
+  assumptions), instead of the crude equilibrium-temperature guess.
+- **Test your own equations** — define a custom metric over the data and recolor the map by it.
+- **Forge a hypothesis** — a *rigor gate* turns a hunch into a clearly-articulated, falsifiable
+  hypothesis and flags exactly what's still missing (assumptions, confounders, a falsification test,
+  novelty) before it's worth calling a find.
+
+Playful to poke at, strict about what counts as a finding — and honest throughout (it surfaces
+*under-sampled places worth a look*, never "planets that must exist"). This section will be updated
+with concrete capabilities as it ships.
+
 ## Run locally
 
 ```bash
