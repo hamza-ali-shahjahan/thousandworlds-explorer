@@ -182,15 +182,17 @@ export default function DiscoveryMap({ all, filtered, selected, onSelect }: Prop
   })() : null;
 
   return (
-    <div className="mapwrap" ref={wrapRef}>
-      <canvas
-        ref={canvasRef}
-        style={{ cursor: hover ? 'pointer' : 'crosshair' }}
-        onMouseMove={onMove}
-        onMouseLeave={() => setHover(null)}
-        onClick={() => { if (hover) onSelect(hover.pt.w); }}
-      />
-      {tip}
+    <>
+      <div className="mapwrap" ref={wrapRef}>
+        <canvas
+          ref={canvasRef}
+          style={{ cursor: hover ? 'pointer' : 'crosshair' }}
+          onMouseMove={onMove}
+          onMouseLeave={() => setHover(null)}
+          onClick={() => { if (hover) onSelect(hover.pt.w); }}
+        />
+        {tip}
+      </div>
       <div className="legend">
         <span><span className="sw" style={{ background: '#6fa8ff' }} />Frozen</span>
         <span><span className="sw" style={{ background: '#46d49a' }} />Temperate</span>
@@ -200,6 +202,6 @@ export default function DiscoveryMap({ all, filtered, selected, onSelect }: Prop
         <span><span className="sw ring" />Earth</span>
         <span style={{ color: '#69728f' }}>· dot size = planet size · vertical = size · horizontal = orbit</span>
       </div>
-    </div>
+    </>
   );
 }

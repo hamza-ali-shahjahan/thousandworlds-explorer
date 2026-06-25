@@ -200,8 +200,10 @@ function LabField({ sims, planet, atm, est }: { sims: TwWorld[]; planet: World |
   useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, planet, atm, est]);
 
   return (
-    <div className="mapwrap" ref={wrapRef}>
-      <canvas ref={cvRef} />
+    <>
+      <div className="mapwrap" ref={wrapRef}>
+        <canvas ref={cvRef} />
+      </div>
       <div className="legend">
         <span><span className="sw" style={{ background: '#6fa8ff' }} />Snowball</span>
         <span><span className="sw" style={{ background: '#46d49a' }} />Temperate</span>
@@ -209,7 +211,7 @@ function LabField({ sims, planet, atm, est }: { sims: TwWorld[]; planet: World |
         <span><span className="sw ring" />Earth</span>
         <span style={{ color: '#69728f' }}>· faint dots = simulated worlds · ringed = your planet’s closest analogs</span>
       </div>
-    </div>
+    </>
   );
 }
 

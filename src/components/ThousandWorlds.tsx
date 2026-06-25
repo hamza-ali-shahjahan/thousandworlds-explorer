@@ -191,14 +191,16 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
   }
 
   return (
-    <div className="mapwrap" ref={wrapRef}>
-      <canvas ref={cvRef} style={{ cursor: hover ? 'pointer' : 'crosshair' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={() => hover && onSelect(hover.w)} />
-      {hover && (
-        <div className="tooltip" style={{ left: hover.mx > sizeRef.current.w - 220 ? hover.mx - 210 : hover.mx + 14, top: Math.max(6, hover.my - 10) }}>
-          <div className="tn">{regime(hover.w.tsurf)} world · {hover.w.gcm}</div>
-          <div className="td">surface {Math.round(hover.w.tsurf)} K ({kToC(hover.w.tsurf)})<br />{hover.w.flux} W/m² · {hover.w.pressure} bar · click to open</div>
-        </div>
-      )}
+    <>
+      <div className="mapwrap" ref={wrapRef}>
+        <canvas ref={cvRef} style={{ cursor: hover ? 'pointer' : 'crosshair' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={() => hover && onSelect(hover.w)} />
+        {hover && (
+          <div className="tooltip" style={{ left: hover.mx > sizeRef.current.w - 220 ? hover.mx - 210 : hover.mx + 14, top: Math.max(6, hover.my - 10) }}>
+            <div className="tn">{regime(hover.w.tsurf)} world · {hover.w.gcm}</div>
+            <div className="td">surface {Math.round(hover.w.tsurf)} K ({kToC(hover.w.tsurf)})<br />{hover.w.flux} W/m² · {hover.w.pressure} bar · click to open</div>
+          </div>
+        )}
+      </div>
       <div className="legend">
         <span><span className="sw" style={{ background: '#6fa8ff' }} />Snowball</span>
         <span><span className="sw" style={{ background: '#7fcfe6' }} />Cold</span>
@@ -208,7 +210,7 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
         <span><span className="sw ring" />Earth analog</span>
         <span style={{ color: '#69728f' }}>· color = surface temperature · dot size = planet size</span>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -468,6 +470,10 @@ function WizardModal({ meta, onClose, onTour }: { meta: TwMeta; onClose: () => v
                 <button className="btn primary" onClick={() => { onClose(); onTour(); }}>Take the guided tour</button>
               </span>}
         </div>
+        <div className="wizcredit">
+          Simulated climates from the <b>ThousandWorlds</b> benchmark — Stevenson, Mak, Wolf, Sergeev, Hammond, Mayne &amp; Cranmer (2026), {meta.license}. A planet's parameters in, its climate out.
+          <a href={meta.paper} target="_blank" rel="noreferrer"> paper</a> ·<a href={meta.code} target="_blank" rel="noreferrer"> code</a>
+        </div>
       </div>
     </Modal>
   );
@@ -482,7 +488,6 @@ export default function ThousandWorlds() {
   const [selected, setSelected] = useState<TwWorld | null>(null);
   const [tourStop, setTourStop] = useState<number | null>(null);
   const [modal, setModal] = useState<'models' | 'wizard' | null>(null);
-  const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('tw_tour_taken'));
 
   useEffect(() => {
     Promise.all([fetch('/thousandworlds.json').then((r) => r.json()), fetch('/thousandworlds-meta.json').then((r) => r.json())])
@@ -519,7 +524,7 @@ export default function ThousandWorlds() {
   const selectNoGcms = () => setGcms(new Set());
   const surprise = () => { const pool = worlds.filter((w) => w.pressure != null); setSelected(pool[Math.floor(Math.random() * pool.length)]); };
   const gotoStop = (i: number) => { const s = twStops[i]; if (!s) return; setTourStop(i); setSelected(s.world); };
-  const startTour = () => { localStorage.setItem('tw_tour_taken', '1'); setTourTaken(true); setGcms(allGcms()); setClimate('all'); setRanges({}); gotoStop(0); };
+  const startTour = () => { setGcms(allGcms()); setClimate('all'); setRanges({}); gotoStop(0); };
   const nextStop = () => { if (tourStop == null) return; if (tourStop >= twStops.length - 1) setTourStop(null); else gotoStop(tourStop + 1); };
 
   return (
@@ -530,24 +535,14 @@ export default function ThousandWorlds() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v.01M11 12h1v4h1" /></svg>
             New here? Start here
           </button>
-          <div className="ctarow">
-            <button className={`cta ghost tourcta${tourTaken ? '' : ' pulse'}`} onClick={startTour}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M14.5 9.5l-1.5 4-4 1.5 1.5-4z" /></svg>
-              Take the tour
-            </button>
-            <button className="cta ghost" onClick={surprise}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M21 16v5h-5M15 15l6 6M3 8V3h5M9 9L3 3" /></svg>
-              Surprise me
-            </button>
-          </div>
+          <button className="cta ghost" onClick={surprise}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M21 16v5h-5M15 15l6 6M3 8V3h5M9 9L3 3" /></svg>
+            Surprise me
+          </button>
         </div>
 
         <div className="twwhat">
           <p className="twlede">Every dot is a <b>made-up planet</b> run through a climate simulator. The map sorts them by starlight and air thickness; color is the temperature it ends up at.</p>
-          <button className="infobtn" onClick={() => setModal('wizard')}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></svg>
-            How this works
-          </button>
         </div>
 
         <div className="section-label">Climates</div>
@@ -599,6 +594,13 @@ export default function ThousandWorlds() {
           <div className="stat big"><div className="v">{filtered.length.toLocaleString()}<span className="u">of {meta.count.toLocaleString()}</span></div><div className="k">simulated worlds</div></div>
           <div className="stat"><div className="v">{temperate.toLocaleString()}</div><div className="k">temperate (0–47 °C)</div></div>
           <div className="stat"><div className="v">{meta.gcms.length}</div><div className="k">climate models</div></div>
+          <span className="statinfo" tabIndex={0} role="button" aria-label="How to read this map">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></svg>
+            How to read this
+            <span className="statinfopop" role="tooltip">
+              Too little <b style={{ color: '#6fa8ff' }}>starlight</b> (left) or a thin atmosphere freezes a world <b style={{ color: '#6fa8ff' }}>blue</b>; the right balance keeps liquid water <b style={{ color: '#46d49a' }}>green</b>; too much runs it away to a hot, Venus-like <b style={{ color: '#e24b4a' }}>red</b> state. The white dot is an <b>Earth twin</b> for scale. Hover a dot to spotlight it · click to open its world.
+            </span>
+          </span>
         </div>
         {tourStop != null && twStops[tourStop] && (
           <Tour
@@ -607,13 +609,6 @@ export default function ThousandWorlds() {
             onPrev={() => { if (tourStop > 0) gotoStop(tourStop - 1); }} onNext={nextStop} onExit={() => setTourStop(null)}
           />
         )}
-        <div className="twintro">
-          <b>How to read this:</b> too little <Term name="flux">starlight</Term> (left) or a thin <Term name="pressure">atmosphere</Term> freezes a world <span style={{ color: '#6fa8ff' }}>blue</span>; the right balance keeps liquid water <span style={{ color: '#46d49a' }}>green</span>; too much runs it away to a hot, Venus-like state <span style={{ color: '#e24b4a' }}>red</span>. The white dot is an <b>Earth twin</b> for scale. <span className="twhint">Hover a dot to spotlight it · click to open its world.</span>
-        </div>
-        <div className="twcredit">
-          Simulated climates from the <b>ThousandWorlds</b> benchmark — Stevenson, Mak, Wolf, Sergeev, Hammond, Mayne &amp; Cranmer (2026), {meta.license}. A planet's parameters in, its climate out.
-          <a href={meta.paper} target="_blank" rel="noreferrer"> paper</a> ·<a href={meta.code} target="_blank" rel="noreferrer"> code</a>
-        </div>
         <ClimateScatter worlds={filtered} selected={selected} onSelect={setSelected} />
       </div>
 
