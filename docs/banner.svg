@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-label="ThousandWorlds — explore the worlds we've found and the climates we've imagined">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1224"/>
+      <stop offset="0.55" stop-color="#080b16"/>
+      <stop offset="1" stop-color="#05070f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#6fa8ff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#6fa8ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="earth" cx="0.38" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#eaf0ff"/>
+      <stop offset="1" stop-color="#9fb6e6"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1280" height="360" fill="url(#sky)"/>
+  <ellipse cx="940" cy="150" rx="430" ry="300" fill="url(#glow)"/>
+
+  <!-- starfield -->
+  <g fill="#cdd6f4">
+    <circle cx="70" cy="60" r="1.3" opacity="0.7"/><circle cx="150" cy="120" r="0.9" opacity="0.4"/>
+    <circle cx="230" cy="40" r="1.1" opacity="0.55"/><circle cx="300" cy="180" r="0.8" opacity="0.35"/>
+    <circle cx="120" cy="250" r="1" opacity="0.5"/><circle cx="40" cy="300" r="0.8" opacity="0.4"/>
+    <circle cx="420" cy="70" r="0.9" opacity="0.45"/><circle cx="520" cy="130" r="1.2" opacity="0.6"/>
+    <circle cx="610" cy="50" r="0.8" opacity="0.35"/><circle cx="700" cy="210" r="1" opacity="0.5"/>
+    <circle cx="780" cy="90" r="1.3" opacity="0.7"/><circle cx="860" cy="40" r="0.9" opacity="0.4"/>
+    <circle cx="980" cy="80" r="1" opacity="0.5"/><circle cx="1080" cy="150" r="1.2" opacity="0.6"/>
+    <circle cx="1160" cy="60" r="0.9" opacity="0.45"/><circle cx="1220" cy="120" r="1.1" opacity="0.55"/>
+    <circle cx="1140" cy="250" r="0.8" opacity="0.4"/><circle cx="1010" cy="300" r="1" opacity="0.5"/>
+    <circle cx="640" cy="300" r="0.9" opacity="0.4"/><circle cx="360" cy="310" r="1.1" opacity="0.5"/>
+    <circle cx="880" cy="270" r="0.8" opacity="0.35"/><circle cx="200" cy="330" r="0.9" opacity="0.4"/>
+  </g>
+
+  <!-- discovered + simulated worlds, in the explorer's temperature palette -->
+  <g>
+    <circle cx="1015" cy="120" r="46" fill="#e24b4a"/>            <!-- runaway / hot giant -->
+    <circle cx="900" cy="232" r="30" fill="#f0b24a"/>             <!-- warm -->
+    <circle cx="1135" cy="225" r="20" fill="#6fa8ff"/>            <!-- frozen -->
+    <circle cx="1085" cy="70" r="12" fill="#7fcfe6"/>             <!-- cold -->
+    <circle cx="812" cy="120" r="16" fill="#46d49a"/>            <!-- temperate -->
+    <circle cx="965" cy="300" r="9" fill="#46d49a"/>
+    <circle cx="1190" cy="150" r="7" fill="#f0b24a"/>
+    <circle cx="760" cy="280" r="6" fill="#6fa8ff"/>
+    <!-- a ringed world -->
+    <g transform="rotate(-18 720 175)">
+      <ellipse cx="720" cy="175" rx="42" ry="11" fill="none" stroke="#8aa0c8" stroke-width="2.5" opacity="0.7"/>
+      <circle cx="720" cy="175" r="18" fill="#9bb0d8"/>
+    </g>
+    <!-- Earth, marked -->
+    <circle cx="1230" cy="300" r="11" fill="url(#earth)" stroke="#ffffff" stroke-width="1.5"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="80" y="178" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="72" font-weight="600" letter-spacing="0.5">
+    <tspan fill="#6fa8ff">Thousand</tspan><tspan fill="#e7ebf7">Worlds</tspan>
+  </text>
+  <text x="82" y="222" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="23" fill="#9aa3be">Every world we've found — and every climate we've imagined.</text>
+  <text x="82" y="262" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="15" fill="#69728f">~6,300 real exoplanets · 1,659 simulated climates · explore both in your browser</text>
+</svg>
