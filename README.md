@@ -73,46 +73,47 @@ Playful to poke at, strict about what counts as a finding — and honest through
 *simulated analogies*, never observations or habitability claims, and points at *places worth a closer
 look*, never "planets that must exist."
 
-## See it — or run your own copy
+## Get started
 
-**Most people don't need to install anything.** The whole explorer runs in your browser:
+<p align="center">
+  <img src="docs/get-started.svg" alt="Get started — open it in your browser, or run your own copy in three simple steps" width="100%">
+</p>
+
+**Just want to look around?** You don't need to install anything — open the live site:
 
 ### 👉 [thousandworlds-explorer.vercel.app](https://thousandworlds-explorer.vercel.app)
 
-Open that link and you're done — that's the full experience. The steps below are *only* if you'd like
-to run your own local copy.
+That's the full experience, right in your browser.
 
 <details open>
-<summary><b>Run it on your own computer — step by step (~5 minutes, no experience needed)</b></summary>
+<summary><b>Want to run your own copy? Here's how — plain and simple (~5 minutes)</b></summary>
 
 <br>
 
-You'll need a **terminal** (the *Terminal* app on macOS, *PowerShell* on Windows) and **Node.js**.
+You'll do this in a **terminal** — the *Terminal* app on a Mac, or *PowerShell* on Windows. Don't worry,
+you'll only type two short lines.
 
-1. **Install Node.js.** Go to **[nodejs.org](https://nodejs.org)**, download the **LTS** version, and run
-   the installer (it bundles `npm`, used below). To check it worked, open your terminal and type
-   `node -v` — you should see a version like `v20.x`.
-2. **Get the code.** On the **[repo page](https://github.com/hamza-ali-shahjahan/thousandworlds-explorer)**,
-   click the green **`Code`** button → **Download ZIP**, then unzip it.
-   *(Prefer git? `git clone https://github.com/hamza-ali-shahjahan/thousandworlds-explorer.git`)*
-3. **Open that folder in your terminal.** Type `cd ` (with a trailing space), drag the unzipped folder
-   onto the terminal window, and press **Enter**. Your prompt should now show the folder's name.
-4. **Install the dependencies** — one time, downloads what the app needs (takes a minute):
+1. **Install Node.js (it's free).** Go to **[nodejs.org](https://nodejs.org)**, click the big green
+   **LTS** download button, and run the installer. This is the only thing you need to install.
+2. **Download the app.** On the **[project page](https://github.com/hamza-ali-shahjahan/thousandworlds-explorer)**,
+   click the green **`Code`** button, choose **Download ZIP**, and unzip the file you get.
+3. **Open that folder in your terminal.** Type `cd`, then a space, then drag the unzipped folder onto the
+   terminal window, and press **Enter**.
+4. **Set it up.** Type this and press **Enter** (it runs for about a minute):
    ```bash
    npm install
    ```
-5. **Start it up:**
+5. **Start it.** Type this and press **Enter**:
    ```bash
    npm run dev
    ```
-   It prints a local link — usually **http://localhost:5173**.
-6. **Open that link in your browser.** You should see the explorer. 🎉 (To stop it later, press
-   **`Ctrl + C`** in the terminal.)
+6. **Open it.** The terminal prints a link — usually **http://localhost:5173**. Open it in your browser. 🎉
 
-**If it doesn't work:** `npm: command not found` (or `node: command not found`) means Node.js isn't
-installed yet — redo step 1 and restart your terminal. Everything runs on your own machine: **no
-account, no API keys, no database, no big download, and no data leaves your computer.** Both datasets
-ship pre-built, so it even works offline after install.
+To stop it later, click the terminal and press **Ctrl + C**.
+
+**If you get stuck:** if a step says `npm: command not found`, Node.js isn't installed yet — do step 1
+again and reopen your terminal. Everything runs on your own computer: no account, no keys, and nothing
+ever leaves your machine.
 
 </details>
 
