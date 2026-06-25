@@ -1,0 +1,83 @@
+{
+  "generated": "2026-06-25T09:06:11.712516+00:00",
+  "source": "ThousandWorlds: A benchmark for climate emulation of potentially habitable exoplanets (Stevenson, Mak, Wolf, Sergeev, Hammond, Mayne, Cranmer, 2026)",
+  "license": "CC-BY-4.0",
+  "paper": "https://arxiv.org/abs/2606.18338",
+  "code": "https://github.com/astroautomata/ThousandWorlds",
+  "doi": "https://doi.org/10.57967/hf/8695",
+  "subset": "complete-obs-only (simulations with no missing fields)",
+  "note": "Climate values are area-weighted global means of time-averaged GCM output, derived from the full gridded dataset.",
+  "count": 1659,
+  "gcms": [
+    [
+      "exoplasim",
+      1164
+    ],
+    [
+      "um",
+      256
+    ],
+    [
+      "exocam-pre2022",
+      152
+    ],
+    [
+      "exocam",
+      73
+    ],
+    [
+      "lfric",
+      14
+    ]
+  ],
+  "ranges": {
+    "radius": [
+      0.26,
+      2.76
+    ],
+    "gravity": [
+      4.7,
+      15.7
+    ],
+    "rotation": [
+      0.25,
+      220.0
+    ],
+    "pressure": [
+      0.1,
+      12.0
+    ],
+    "co2": [
+      0.0,
+      100.0
+    ],
+    "ch4": [
+      0.0,
+      3.5
+    ],
+    "flux": [
+      400.0,
+      3100.0
+    ],
+    "st_teff": [
+      2500.0,
+      5777.0
+    ],
+    "tsurf": [
+      133.2,
+      391.8
+    ],
+    "asr": [
+      68.2,
+      967.0
+    ],
+    "olr": [
+      24.7,
+      543.7
+    ],
+    "cloud": [
+      0.0,
+      0.93
+    ]
+  }
+}

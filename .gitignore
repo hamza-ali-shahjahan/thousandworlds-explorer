@@ -18,3 +18,4 @@ vite.config.d.ts
 
 # Raw API pulls can be regenerated with `npm run data`
 data/raw/
+.vercel

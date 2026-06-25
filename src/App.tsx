@@ -4,6 +4,7 @@ import { TEMP_BANDS, band, worldsToCsv, downloadText, type BandLabel } from './l
 import DiscoveryMap from './components/DiscoveryMap';
 import DataTable, { type Key } from './components/DataTable';
 import Charts from './components/Charts';
+import ThousandWorlds from './components/ThousandWorlds';
 import Sidebar, { ANY_DIST, type Filters, type PresetKey } from './components/Sidebar';
 import DetailPanel from './components/DetailPanel';
 import StatBar, { type View } from './components/StatBar';
@@ -111,6 +112,7 @@ export default function App() {
   const [dir, setDir] = useState<1 | -1>(1);
   const [tourStop, setTourStop] = useState<number | null>(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [dataset, setDataset] = useState<'nasa' | 'tw'>('nasa');
 
   useEffect(() => {
     Promise.all([fetch('/worlds.json').then((r) => r.json()), fetch('/meta.json').then((r) => r.json())])
@@ -178,14 +180,20 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <button className="navbtn" aria-label="Toggle filters" onClick={() => setNavOpen((o) => !o)}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-        </button>
+        {dataset === 'nasa' && (
+          <button className="navbtn" aria-label="Toggle filters" onClick={() => setNavOpen((o) => !o)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+        )}
         <span className="brand"><b>Thousand</b>Worlds</span>
-        <span className="tagline">a map of the {meta.total.toLocaleString()} worlds humanity has discovered</span>
+        <div className="dstoggle" role="tablist" aria-label="Dataset">
+          <button className={dataset === 'nasa' ? 'on' : ''} role="tab" aria-selected={dataset === 'nasa'} onClick={() => setDataset('nasa')}>Discovered · NASA</button>
+          <button className={dataset === 'tw' ? 'on' : ''} role="tab" aria-selected={dataset === 'tw'} onClick={() => setDataset('tw')}>Simulated · ThousandWorlds</button>
+        </div>
         <span className="spacer" />
-        <span className="src">NASA Exoplanet Archive · updated {new Date(meta.generated).toLocaleDateString()}</span>
+        <span className="src">{dataset === 'nasa' ? `NASA Exoplanet Archive · ${meta.total.toLocaleString()} worlds` : 'ThousandWorlds benchmark · 1,659 climates · CC-BY-4.0'}</span>
       </header>
+      {dataset === 'tw' ? <ThousandWorlds /> : (
       <div className={`main${selected ? ' sel' : ''}${navOpen ? ' navopen' : ''}`}>
         {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
         <Sidebar
@@ -211,6 +219,7 @@ export default function App() {
         </div>
         <DetailPanel world={selected} />
       </div>
+      )}
     </div>
   );
 }

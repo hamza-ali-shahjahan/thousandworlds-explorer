@@ -49,3 +49,21 @@ npm run data
   not a rigorous habitable-zone calculation.
 - Many worlds are missing some fields; those are stored as `null` and excluded from views
   that need them.
+
+## Datasets & credits
+
+This explorer shows two datasets, switched via the top bar:
+
+1. **Discovered · NASA** — confirmed exoplanets from the
+   [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/) (`pscomppars`).
+2. **Simulated · ThousandWorlds** — 1,659 simulated exoplanet climates from the
+   **ThousandWorlds** benchmark, reduced to area-weighted global means by
+   `scripts/build-thousandworlds.py`. Used under **CC-BY-4.0** with thanks to its authors:
+
+   > Stevenson, Mak, Wolf, Sergeev, Hammond, Mayne & Cranmer (2026),
+   > *ThousandWorlds: A benchmark for climate emulation of potentially habitable exoplanets.*
+   > Paper: https://arxiv.org/abs/2606.18338 · Code: https://github.com/astroautomata/ThousandWorlds
+   > · DOI: https://doi.org/10.57967/hf/8695
+
+   This is an independent companion explorer, not an official ThousandWorlds project. Climate
+   values shown are global means of the simulations — not observations or habitability claims.

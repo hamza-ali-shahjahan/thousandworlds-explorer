@@ -11,6 +11,10 @@ export const GLOSSARY: Record<string, string> = {
   orbit: 'The average distance from the planet to its star, in AU. One AU is the Earth–Sun distance (~150 million km).',
   eccentricity: 'How stretched the orbit is: 0 is a perfect circle; closer to 1 is a long, narrow ellipse.',
   esi: 'A rough Earth-likeness score built from size and temperature only — a simple heuristic, not a claim about water, air, or life.',
+  gcm: 'Global Climate Model — a physics simulator that computes a planet’s winds, clouds, and temperatures from its star, rotation, and atmosphere.',
+  flux: 'Stellar flux — how much starlight energy reaches the planet, in watts per square metre. Earth receives about 1,361.',
+  pressure: 'Surface pressure — how thick the atmosphere is at the ground, measured in bars. Earth’s is about 1 bar.',
+  surface_temp: 'Surface temperature — the actual ground temperature the climate model computes, unlike the rough "equilibrium temperature" estimated for discovered planets.',
 };
 
 export default function Term({ name, children }: { name: string; children: ReactNode }) {
