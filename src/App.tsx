@@ -5,6 +5,7 @@ import DiscoveryMap from './components/DiscoveryMap';
 import DataTable, { type Key } from './components/DataTable';
 import Charts from './components/Charts';
 import ThousandWorlds from './components/ThousandWorlds';
+import ImagineLab from './components/ImagineLab';
 import Sidebar, { ANY_DIST, type Filters, type PresetKey } from './components/Sidebar';
 import DetailPanel from './components/DetailPanel';
 import StatBar, { type View } from './components/StatBar';
@@ -112,7 +113,7 @@ export default function App() {
   const [dir, setDir] = useState<1 | -1>(1);
   const [tourStop, setTourStop] = useState<number | null>(null);
   const [navOpen, setNavOpen] = useState(false);
-  const [dataset, setDataset] = useState<'nasa' | 'tw'>('nasa');
+  const [dataset, setDataset] = useState<'nasa' | 'tw' | 'lab'>('nasa');
   const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('nasa_tour_taken'));
 
   useEffect(() => {
@@ -190,11 +191,12 @@ export default function App() {
         <div className="dstoggle" role="tablist" aria-label="Dataset">
           <button className={dataset === 'nasa' ? 'on' : ''} role="tab" aria-selected={dataset === 'nasa'} onClick={() => setDataset('nasa')}>Discovered · NASA</button>
           <button className={dataset === 'tw' ? 'on' : ''} role="tab" aria-selected={dataset === 'tw'} onClick={() => setDataset('tw')}>Simulated · ThousandWorlds</button>
+          <button className={dataset === 'lab' ? 'on' : ''} role="tab" aria-selected={dataset === 'lab'} onClick={() => setDataset('lab')}>Imagine · Lab</button>
         </div>
         <span className="spacer" />
-        <span className="src">{dataset === 'nasa' ? `NASA Exoplanet Archive · ${meta.total.toLocaleString()} worlds` : 'ThousandWorlds benchmark · 1,659 climates · CC-BY-4.0'}</span>
+        <span className="src">{dataset === 'nasa' ? `NASA Exoplanet Archive · ${meta.total.toLocaleString()} worlds` : dataset === 'lab' ? 'Imagine Lab · overlay real + simulated · honest hypotheses' : 'ThousandWorlds benchmark · 1,659 climates · CC-BY-4.0'}</span>
       </header>
-      {dataset === 'tw' ? <ThousandWorlds /> : (
+      {dataset === 'tw' ? <ThousandWorlds /> : dataset === 'lab' ? <ImagineLab /> : (
       <div className={`main${selected ? ' sel' : ''}${navOpen ? ' navopen' : ''}`}>
         {navOpen && <div className="scrim" onClick={() => setNavOpen(false)} />}
         <Sidebar

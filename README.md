@@ -47,25 +47,31 @@ parameter space, and turn a hunch into a clearly-articulated, *falsifiable* hypo
 throughout — these are simulations and global means, never habitability claims. Built in the open, in
 the spirit of the ThousandWorlds benchmark it stands on.
 
-## The playground — Imagine · Lab &nbsp;·&nbsp; 🚧 coming soon (building now)
+## The playground — Imagine · Lab
 
 <p align="center">
   <img src="docs/playground.svg" alt="How the Imagine Lab turns real detections and simulated physics into an articulated hypothesis" width="100%">
 </p>
 
-A third tab, **Imagine · Lab**, is in active development — an *honest hypothesis forge*. The plan:
+A third tab, **Imagine · Lab**, is **live** — an *honest hypothesis forge* that overlays the two
+datasets so you can test your own theories:
 
-- **Overlay & translate** — drop a real discovered planet onto the simulated climate physics and
-  re-estimate its surface climate from its nearest simulated analogs (with *your* stated atmosphere
-  assumptions), instead of the crude equilibrium-temperature guess.
-- **Test your own equations** — define a custom metric over the data and recolor the map by it.
-- **Forge a hypothesis** — a *rigor gate* turns a hunch into a clearly-articulated, falsifiable
-  hypothesis and flags exactly what's still missing (assumptions, confounders, a falsification test,
-  novelty) before it's worth calling a find.
+- **Overlay & translate** — pick any of the ~5,700 real discovered planets that fall inside the
+  simulated range, assume an atmosphere (surface pressure + CO₂), and the climate models
+  **re-estimate its surface temperature** from its 12 nearest simulated analogs — a more physical
+  guess than the crude equilibrium temperature. The estimate *moves with your assumption* (that
+  honesty is the point), and it flags when a planet falls outside the simulated grid (extrapolation).
+- **Test your own equations** — write a formula over the real catalog (e.g. `esi / sqrt(dist)` for
+  "Earth-like *and* nearby") and rank planets by *your* idea of what matters, then click a result to
+  translate it. Runs through a tiny safe expression evaluator — no `eval`.
+- **Forge a hypothesis** — a *rigor gate* turns a hunch into a clearly-stated, falsifiable hypothesis:
+  it auto-fills the data + your assumptions, scores it against 8 rigor checks (a clear claim, a
+  physical mechanism, confounders, a falsifiable test, novelty, in-envelope…), lists the gaps still to
+  close, and hands you a copyable hypothesis card.
 
-Playful to poke at, strict about what counts as a finding — and honest throughout (it surfaces
-*under-sampled places worth a look*, never "planets that must exist"). This section will be updated
-with concrete capabilities as it ships.
+Playful to poke at, strict about what counts as a finding — and honest throughout: it re-estimates
+*simulated analogies*, never observations or habitability claims, and points at *places worth a closer
+look*, never "planets that must exist."
 
 ## Run locally
 
