@@ -1,6 +1,9 @@
 /* Build a world — the interactive (surrogate) emulator demo in the Imagine Lab. */
-.bw { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(300px, 1.25fr); gap: 22px; }
-@media (max-width: 720px) { .bw { grid-template-columns: 1fr; gap: 16px; } }
+.bw { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(300px, 1.25fr); gap: 14px 22px; }
+@media (max-width: 720px) { .bw { grid-template-columns: 1fr; gap: 14px 16px; } }
+.bw-lede { grid-column: 1 / -1; font-size: 13px; line-height: 1.55; color: var(--text-dim); margin: 0; }
+.bw-lede b { color: var(--text); font-weight: 500; }
+.bw-copy { align-self: flex-start; margin-top: 2px; }
 
 .bw-controls { display: flex; flex-direction: column; gap: 13px; }
 .bw-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-bottom: 2px; }

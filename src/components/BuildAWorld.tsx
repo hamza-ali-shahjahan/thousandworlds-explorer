@@ -99,6 +99,7 @@ export default function BuildAWorld({ sims, surf, field, ranges, onClose }: {
   sims: TwWorld[]; surf: Uint8Array; field: FieldMeta; ranges: Record<string, [number, number]>; onClose: () => void;
 }) {
   const [p, setP] = useState<BuildParams>(PRESETS[0].p);
+  const [copied, setCopied] = useState(false);
   const pred = useMemo(() => predictField(p, sims, surf, field, ranges), [p, sims, surf, field, ranges]);
   const set = (k: keyof BuildParams) => (e: React.ChangeEvent<HTMLInputElement>) => setP({ ...p, [k]: Number(e.target.value) });
 
@@ -112,9 +113,29 @@ export default function BuildAWorld({ sims, surf, field, ranges, onClose }: {
   ];
   const col = pred ? regimeColor(pred.mean) : '#46d49a';
 
+  const copyWorld = () => {
+    if (!pred) return;
+    const txt = `My built world — predicted climate (ThousandWorlds Explorer · Imagine Lab)
+
+Inputs:
+  Starlight: ${Math.round(p.flux)} W/m²
+  Star temperature: ${Math.round(p.st_teff)} K
+  Surface pressure: ${p.pressure.toFixed(1)} bar
+  CO₂: ${p.co2.toFixed(1)} %
+  Planet size: ${p.radius.toFixed(2)}× Earth
+  Gravity: ${p.gravity.toFixed(1)} m/s²
+
+Predicted surface: ${Math.round(pred.mean)} K (${kToC(pred.mean)}) — ${pred.reg}${pred.inEnv ? '' : ' [OUTSIDE the simulated grid — extrapolation]'}
+${pred.n} nearest simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K.
+
+A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al., CC-BY-4.0) — a simulated analogy, not an observation or a habitability claim.`;
+    navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }).catch(() => {});
+  };
+
   return (
     <Modal title="Build a world — predict its climate" onClose={onClose} wide labelledBy="build-title">
       <div className="bw">
+        <p className="bw-lede">Invent a planet — set its star and atmosphere with the sliders, and watch the climate these models predict it would have. A <b>what-if</b>: nothing here is a real planet.</p>
         <div className="bw-controls">
           <div className="bw-presets">
             <span className="bw-presetlabel">Start from</span>
@@ -139,6 +160,10 @@ export default function BuildAWorld({ sims, surf, field, ranges, onClose }: {
                 <span className="bw-band">{pred.n} nearest simulations span {Math.round(pred.lo)}–{Math.round(pred.hi)} K</span>
               </div>
               {!pred.inEnv && <div className="bw-warn">⚠ Outside the simulated grid ({pred.outOf.join(', ')}) — this is extrapolation, treat the prediction as a rough guess.</div>}
+              <button className="btn bw-copy" onClick={copyWorld} title="Copy this world's inputs + predicted climate to share">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{copied ? <path d="M20 6L9 17l-5-5" /> : <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></>}</svg>
+                {copied ? 'Copied ✓' : 'Copy this world'}
+              </button>
             </>
           ) : <div className="bw-empty">Move a slider to predict a climate.</div>}
           <p className="bw-honest">
