@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-25T09:06:11.712516+00:00",
+  "generated": "2026-06-26T07:45:52.812003+00:00",
   "source": "ThousandWorlds: A benchmark for climate emulation of potentially habitable exoplanets (Stevenson, Mak, Wolf, Sergeev, Hammond, Mayne, Cranmer, 2026)",
   "license": "CC-BY-4.0",
   "paper": "https://arxiv.org/abs/2606.18338",
@@ -81,5 +81,18 @@
       0.0,
       0.93
     ]
+  },
+  "field": {
+    "name": "surface_temperature",
+    "grid": [
+      32,
+      64
+    ],
+    "kRange": [
+      90,
+      400
+    ],
+    "sentinel": 0,
+    "asset": "tw-surface.u8"
   }
 }

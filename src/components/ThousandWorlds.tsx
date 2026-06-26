@@ -3,6 +3,7 @@ import RangeFilter, { type Bound } from './RangeFilter';
 import Term from './Term';
 import Tour from './Tour';
 import Modal from './Modal';
+import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import { n, dotRadius } from '../lib/util';
 
 // Plain-language decoder for the GCM (climate-model) codenames.
@@ -22,7 +23,7 @@ export interface TwWorld {
 }
 interface TwMeta {
   count: number; full_count?: number; subset?: string; gcms: [string, number][]; ranges: Record<string, [number, number]>;
-  source: string; license: string; paper: string; code: string;
+  source: string; license: string; paper: string; code: string; field?: FieldMeta;
 }
 
 // Surface-temperature climate colormap (K) — frozen → temperate → scorching.
@@ -217,7 +218,11 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
   );
 }
 
-function DetailTw({ world, siblings }: { world: TwWorld | null; siblings: TwWorld[] }) {
+function DetailTw({ world, siblings, surf, field, row, onDive }: {
+  world: TwWorld | null; siblings: TwWorld[];
+  surf: Uint8Array | null; field: FieldMeta | null; row: number | null;
+  onDive: (rect: DOMRect, row: number) => void;
+}) {
   if (!world) return <section className="detail"><div className="empty">Click a simulated world to see the planet it started from and the climate the physics produced.</div></section>;
   const w = world;
   const dot = (t: number) => ({ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: tColor(t), marginRight: 7 } as const);
@@ -232,6 +237,13 @@ function DetailTw({ world, siblings }: { world: TwWorld | null; siblings: TwWorl
         <div className="metric"><div className="k">Energy in → out</div><div className="v">{Math.round(w.asr)} → {Math.round(w.olr)}<span className="u">W/m²</span></div></div>
         <div className="metric"><div className="k">Cloud cover</div><div className="v">{Math.round(w.cloud * 100)}<span className="u">%</span></div></div>
       </div>
+      {field && surf && row != null && (
+        <button className="surfacelure" onClick={(e) => onDive(e.currentTarget.getBoundingClientRect(), row)} aria-label="Open this world’s surface climate map">
+          <div className="section-label" style={{ marginBottom: 6 }}>Surface climate <span className="lurecue">⤢ dive in</span></div>
+          <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="thumb" />
+          <span className="lurehint">The temperature across this world — hottest toward its star, coldest on the far side. Tap to enlarge.</span>
+        </button>
+      )}
       <div className="section-label" style={{ marginBottom: 6 }}>The planet it started from</div>
       <div className="rows">
         <div className="r"><span className="k">Stellar flux</span><span>{w.flux} W/m² {w.flux > 1361 ? '(more than Earth)' : w.flux < 1361 ? '(less than Earth)' : '(Earth-like)'}</span></div>
@@ -258,6 +270,55 @@ function DetailTw({ world, siblings }: { world: TwWorld | null; siblings: TwWorl
         </>
       )}
     </section>
+  );
+}
+
+// The "dive into the dot" hero: the surface map blooms FLIP-style from the thumbnail's rect
+// to a centered card, then closes back to the scatter (selection intact). Reduced-motion safe.
+function SurfaceHero({ surf, field, row, world, originRect, onClose }: {
+  surf: Uint8Array | null; field: FieldMeta; row: number; world: TwWorld; originRect: DOMRect; onClose: () => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    document.body.classList.add('modal-open');
+    return () => { document.removeEventListener('keydown', onKey); document.body.classList.remove('modal-open'); };
+  }, [onClose]);
+  useEffect(() => {
+    const card = cardRef.current; if (!card) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const f = card.getBoundingClientRect();
+    const sx = originRect.width / f.width, sy = originRect.height / f.height;
+    const dx = (originRect.left + originRect.width / 2) - (f.left + f.width / 2);
+    const dy = (originRect.top + originRect.height / 2) - (f.top + f.height / 2);
+    card.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    card.style.opacity = '0.5';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      card.style.transition = 'transform 300ms cubic-bezier(.2,.7,.2,1), opacity 220ms ease';
+      card.style.transform = 'none';
+      card.style.opacity = '1';
+    }));
+  }, [originRect]);
+  return (
+    <div className="surfacehero-backdrop" onClick={onClose}>
+      <div className="surfacehero" ref={cardRef} role="dialog" aria-modal="true" aria-label={`${nickname(world)} surface climate`} onClick={(e) => e.stopPropagation()}>
+        <div className="surfacehero-head">
+          <div>
+            <h2>{nickname(world)} · surface climate</h2>
+            <div className="surfacehero-sub">Simulation #{world.sid} · {regime(world.tsurf)} · global mean {Math.round(world.tsurf)} K ({kToC(world.tsurf)}) · model: {world.gcm}</div>
+          </div>
+          <button className="modal-x" onClick={onClose} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="hero" />
+        <div className="surfacehero-foot">
+          <span className="surfacehero-scale"><i>colder</i><span className="ramp" /><i>hotter</i></span>
+          <span className="surfacehero-note">Simulated surface temperature across the globe — longitude →, latitude ↑ — on the same color scale as the dots.</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -491,11 +552,21 @@ export default function ThousandWorlds() {
   const [selected, setSelected] = useState<TwWorld | null>(null);
   const [tourStop, setTourStop] = useState<number | null>(null);
   const [modal, setModal] = useState<'models' | 'wizard' | null>(null);
+  const [surf, setSurf] = useState<Uint8Array | null>(null);
+  const [hero, setHero] = useState<{ rect: DOMRect; row: number } | null>(null);
 
   useEffect(() => {
     Promise.all([fetch('/thousandworlds.json').then((r) => r.json()), fetch('/thousandworlds-meta.json').then((r) => r.json())])
       .then(([w, m]: [TwWorld[], TwMeta]) => { setWorlds(w); setMeta(m); setGcms(new Set(m.gcms.map(([g]) => g))); });
   }, []);
+
+  // Lazy-load the per-world surface-temperature field the first time a world is selected,
+  // so the ~3.4 MB asset is only fetched once the user actually engages with a world.
+  useEffect(() => {
+    if (selected && !surf && meta?.field) {
+      fetch(`/${meta.field.asset}`).then((r) => r.arrayBuffer()).then((b) => setSurf(new Uint8Array(b))).catch(() => {});
+    }
+  }, [selected, surf, meta]);
 
   // First-run: auto-open the teaching wizard once ever (reopenable via the CTAs afterwards).
   useEffect(() => {
@@ -518,6 +589,8 @@ export default function ThousandWorlds() {
     () => (selected && selected.planet != null && worlds ? worlds.filter((w) => w.planet === selected.planet).sort((a, b) => a.tsurf - b.tsurf) : []),
     [worlds, selected],
   );
+  // worlds[i] is aligned to row i of the surface-field asset, so a world's row is its index here.
+  const rowOf = useMemo(() => new Map((worlds ?? []).map((w, i) => [w.sid, i] as const)), [worlds]);
 
   if (!worlds || !meta) return <div className="loading">Loading {`1,659`} simulated climates…</div>;
 
@@ -615,10 +688,22 @@ export default function ThousandWorlds() {
         <ClimateScatter worlds={filtered} selected={selected} onSelect={setSelected} />
       </div>
 
-      <DetailTw world={selected} siblings={siblings} />
+      <DetailTw
+        world={selected} siblings={siblings}
+        surf={surf} field={meta.field ?? null}
+        row={selected ? rowOf.get(selected.sid) ?? null : null}
+        onDive={(rect, row) => setHero({ rect, row })}
+      />
 
       {modal === 'wizard' && <WizardModal meta={meta} onClose={() => setModal(null)} onTour={startTour} />}
       {modal === 'models' && <ModelsModal meta={meta} onClose={() => setModal(null)} />}
+      {hero && meta.field && worlds[hero.row] && (
+        <SurfaceHero
+          surf={surf} field={meta.field} row={hero.row}
+          world={worlds[hero.row]} originRect={hero.rect}
+          onClose={() => setHero(null)}
+        />
+      )}
     </div>
   );
 }
