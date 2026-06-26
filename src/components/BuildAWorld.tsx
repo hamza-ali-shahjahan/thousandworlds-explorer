@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import Modal from './Modal';
+import SaveShareBar from './SaveShareBar';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import './BuildAWorld.css';
 import type { TwWorld } from './ThousandWorlds';
@@ -227,6 +228,16 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{copied ? <path d="M20 6L9 17l-5-5" /> : <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></>}</svg>
                 {copied ? 'Copied ✓' : shareCard ? 'Copy again' : 'Copy this world'}
               </button>
+              <SaveShareBar
+                type="world"
+                title={name.trim() || 'Your world'}
+                buildPayload={() => ({
+                  name: name.trim() || 'Your world',
+                  params: p,
+                  prediction: { mean: pred.mean, lo: pred.lo, hi: pred.hi, reg: pred.reg, inEnv: pred.inEnv, outOf: pred.outOf, n: pred.n },
+                  cousin: cousin?.name ?? null,
+                })}
+              />
               {shareCard && (
                 <div className="bw-sharecard">
                   <div className="bw-shareok">{copied ? '✓ Copied to your clipboard!' : 'Paste it (⌘V / Ctrl+V) anywhere — a note, a message — to share.'}</div>
