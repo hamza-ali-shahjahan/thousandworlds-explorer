@@ -551,7 +551,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .labpinx:hover { color: var(--text); }
 
 .labresult { padding: 13px 20px; border-top: 1px solid var(--border-soft); background: var(--bg-panel); }
-.labresult.labempty { color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+.labresult.labempty { color: var(--text-dim); font-size: 13px; line-height: 1.6; text-align: center; }
 .labresult.labempty b { color: var(--text); font-weight: 500; }
 .lr-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 5px; }
 .lr-name { font-size: 17px; font-weight: 500; }
