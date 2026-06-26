@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
+import BuildAWorld from './BuildAWorld';
+import type { FieldMeta } from './SurfaceMap';
 import type { World } from '../types';
 import type { TwWorld } from './ThousandWorlds';
 import { n, dotRadius } from '../lib/util';
@@ -30,7 +32,7 @@ function verdict(t: number): { label: string; color: string } {
 const kToC = (k: number) => `${Math.round(k - 273.15)} °C`;
 const EARTH_FLUX = 1361;
 
-interface TwMeta { count: number; gcms: [string, number][]; ranges: Record<string, [number, number]>; license: string; paper: string; code: string; }
+interface TwMeta { count: number; gcms: [string, number][]; ranges: Record<string, [number, number]>; license: string; paper: string; code: string; field?: FieldMeta; }
 
 // ---------- a tiny safe expression compiler (no eval) — powers "build your own" ----------
 type Fn = (ctx: Record<string, number>) => number;
@@ -242,15 +244,23 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
     return CURATED.map((nm) => byName.get(nm)).filter((w): w is World => !!w);
   }, [planets]);
   const browsing = !q.trim() && filter === 'all';
-  const rows = useMemo(() => {
+  // how many real planets each filter surfaces — shown on the chips so a newbie sees what's available
+  const filterCount = useMemo(() => ({
+    all: planets.length,
+    near: planets.filter((w) => w.dist_ly != null && w.dist_ly < 50).length,
+    earth: planets.filter((w) => w.radius != null && w.radius <= 1.6).length,
+    temp: planets.filter((w) => w.teq != null && w.teq >= 250 && w.teq <= 330).length,
+  } as Record<string, number>), [planets]);
+  const { rows, total } = useMemo(() => {
     let list = planets;
     const term = q.trim().toLowerCase();
     if (term) list = list.filter((w) => `${w.name} ${w.host ?? ''}`.toLowerCase().includes(term));
     if (filter === 'near') list = list.filter((w) => w.dist_ly != null && w.dist_ly < 50);
     else if (filter === 'earth') list = list.filter((w) => w.radius != null && w.radius <= 1.6);
     else if (filter === 'temp') list = list.filter((w) => w.teq != null && w.teq >= 250 && w.teq <= 330);
-    return list.map((w) => ({ w, v: (() => { try { const val = sortFn(planetCtx(w)); return isFinite(val) ? val : -Infinity; } catch { return -Infinity; } })() }))
-      .sort((a, b) => b.v - a.v).slice(0, 60).map((x) => x.w);
+    const sorted = list.map((w) => ({ w, v: (() => { try { const val = sortFn(planetCtx(w)); return isFinite(val) ? val : -Infinity; } catch { return -Infinity; } })() }))
+      .sort((a, b) => b.v - a.v).map((x) => x.w);
+    return { rows: sorted.slice(0, 60), total: sorted.length };
   }, [planets, q, filter, sortFn]);
 
   const applyAdv = () => { const src = eqSrc.trim(); if (!src) return; try { const f = compile(src); f(planetCtx(planets[0])); setSortExpr(src); setEqErr(''); } catch (e) { setEqErr(e instanceof Error ? e.message : 'could not read that'); } };
@@ -274,9 +284,20 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
   return (
     <Modal title="Find a world to explore" onClose={onClose} wide labelledBy="lab-finder-title">
       <div className="finder">
+        <style>{`
+          .finder .buildyourown { border-color: #f0b24a; color: #f0b24a; position: relative; overflow: hidden; }
+          .finder .buildyourown.on { background: rgba(240,178,74,0.12); color: #f0b24a; }
+          .finder .buildyourown::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(240,178,74,0.32) 50%, transparent 65%); transform: translateX(-130%); animation: labsheen 3.4s ease-in-out infinite; }
+          @keyframes labsheen { 0%, 58% { transform: translateX(-130%); } 100% { transform: translateX(230%); } }
+          @media (prefers-reduced-motion: reduce) { .finder .buildyourown::before { animation: none; } }
+          .finder .fcount { color: var(--text-faint); font-variant-numeric: tabular-nums; margin-left: 4px; }
+          .finder .chip.active .fcount { color: var(--accent); }
+          .finder .finderresult { font-size: 12px; color: var(--text-faint); margin: 2px 0 -2px; }
+          .finder .finderresult b { color: var(--text-dim); font-weight: 500; }
+        `}</style>
         <input className="search" placeholder="Search by name…  (e.g. TRAPPIST, Kepler, Proxima)" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
         <div className="finderfilters">
-          {FILTERS.map(([k, label]) => <button key={k} className={`chip${filter === k ? ' active' : ''}`} onClick={() => setFilter(k)}>{label}</button>)}
+          {FILTERS.map(([k, label]) => <button key={k} className={`chip${filter === k ? ' active' : ''}`} onClick={() => setFilter(k)}>{label} <span className="fcount">{filterCount[k].toLocaleString()}</span></button>)}
           <span className="finderspacer" />
           <span className="finderhint">click a world to explore it · <b>+</b> pins it to compare</span>
         </div>
@@ -284,7 +305,7 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
         <div className="findersort">
           <span>Sort by what you care about:</span>
           {WISHES.map((wi) => <button key={wi.expr} className={`chip sm${sortExpr === wi.expr ? ' active' : ''}`} onClick={() => setSortExpr(wi.expr)}>{wi.label}</button>)}
-          <button className={`chip sm${advOpen ? ' active' : ''}`} onClick={() => setAdvOpen(!advOpen)}>Build your own…</button>
+          <button className={`chip sm buildyourown${advOpen ? ' on' : ''}`} onClick={() => setAdvOpen(!advOpen)}>Build your own…</button>
         </div>
         {advOpen && (
           <div className="finderadv">
@@ -298,6 +319,7 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
           </div>
         )}
 
+        <div className="finderresult"><b>{total.toLocaleString()}</b> worlds{total > 60 ? ' (showing the closest 60)' : ''} · sorted by “{wishLabel ?? 'your formula'}”</div>
         <div className="finderlist">
           {browsing && curatedSet.length > 0 && (
             <>
@@ -416,7 +438,8 @@ export default function ImagineLab() {
   const [atm, setAtm] = useState<Atmosphere>({ pressure: 1, co2: 1 });
   const [showCo2, setShowCo2] = useState(false);
   const [finder, setFinder] = useState<{ expr: string } | null>(null);
-  const [modal, setModal] = useState<'wizard' | 'rigor' | null>(null);
+  const [modal, setModal] = useState<'wizard' | 'rigor' | 'build' | null>(null);
+  const [surf, setSurf] = useState<Uint8Array | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -443,6 +466,11 @@ export default function ImagineLab() {
     return [...ps, w];
   });
   const surprise = () => { const w = translatable[Math.floor(Math.random() * translatable.length)]; if (w) pick(w); };
+  // Build-a-world (the interactive emulator demo) — lazy-load the surface-field asset on first open.
+  const openBuild = () => {
+    if (!surf && meta.field) fetch(`/${meta.field.asset}`).then((r) => r.arrayBuffer()).then((b) => setSurf(new Uint8Array(b))).catch(() => {});
+    setModal('build');
+  };
   const sel = selected;
   const v = est ? verdict(est.median) : null;
   const dteq = sel && est && sel.teq != null ? Math.round(est.median - sel.teq) : null;
@@ -455,6 +483,10 @@ export default function ImagineLab() {
           <button className="cta" onClick={() => setFinder({ expr: 'esi' })}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
             Find a world
+          </button>
+          <button className="cta ghost" onClick={openBuild}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6" /><circle cx="9" cy="6" r="2" fill="currentColor" /><line x1="4" y1="12" x2="20" y2="12" /><circle cx="15" cy="12" r="2" fill="currentColor" /><line x1="4" y1="18" x2="20" y2="18" /><circle cx="7" cy="18" r="2" fill="currentColor" /></svg>
+            Build a world
           </button>
           <button className="cta ghost" onClick={surprise}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M21 16v5h-5M15 15l6 6M3 8V3h5M9 9L3 3" /></svg>
@@ -527,6 +559,11 @@ export default function ImagineLab() {
       {finder && <FinderModal planets={translatable} pinned={pinnedNames} onPick={pick} onTogglePin={togglePin} onClose={() => setFinder(null)} initialExpr={finder.expr} />}
       {modal === 'wizard' && <LabWizard onClose={() => setModal(null)} onFind={() => setFinder({ expr: 'esi' })} />}
       {modal === 'rigor' && sel && est && <RigorModal planet={sel} atm={atm} est={est} onClose={() => setModal(null)} />}
+      {modal === 'build' && meta.field && (
+        surf
+          ? <BuildAWorld sims={sims} surf={surf} field={meta.field} ranges={meta.ranges} onClose={() => setModal(null)} />
+          : <Modal title="Build a world — predict its climate" onClose={() => setModal(null)}><div className="loading" style={{ padding: 30 }}>Loading the climate field…</div></Modal>
+      )}
     </div>
   );
 }
