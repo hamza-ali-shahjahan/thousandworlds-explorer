@@ -173,9 +173,13 @@ function LabField({ sims, pins, selName, atm }: { sims: TwWorld[]; pins: Pin[]; 
     grad.addColorStop(0.42, 'rgba(70,212,154,0.05)'); grad.addColorStop(1.0, 'rgba(226,75,74,0.12)');
     c.fillStyle = grad; c.fillRect(px0, pTop, px1 - px0, pBot - pTop);
     c.font = FONT; c.textBaseline = 'top';
-    c.fillStyle = 'rgba(122,162,247,0.7)'; c.textAlign = 'left'; c.fillText('mostly frozen', px0 + 2, 9);
-    c.fillStyle = 'rgba(70,212,154,0.75)'; c.textAlign = 'center'; c.fillText('temperate band', xp(1250), 9);
-    c.fillStyle = 'rgba(226,75,74,0.7)'; c.textAlign = 'right'; c.fillText('mostly scorching', px1 - 2, 9);
+    // regime labels — shortened + collision-aware so they never overlap on narrow charts
+    c.fillStyle = 'rgba(122,162,247,0.7)'; c.textAlign = 'left'; c.fillText('Frozen', px0 + 2, 9);
+    c.fillStyle = 'rgba(226,75,74,0.7)'; c.textAlign = 'right'; c.fillText('Scorching', px1 - 2, 9);
+    const tcx = xp(1250), tw = c.measureText('Temperate').width;
+    if (tcx - tw / 2 > px0 + 2 + c.measureText('Frozen').width + 8 && tcx + tw / 2 < px1 - 2 - c.measureText('Scorching').width - 8) {
+      c.fillStyle = 'rgba(70,212,154,0.75)'; c.textAlign = 'center'; c.fillText('Temperate', tcx, 9);
+    }
 
     c.strokeStyle = '#121830'; c.lineWidth = 1; c.fillStyle = '#69728f'; c.textAlign = 'center'; c.textBaseline = 'top';
     for (const fx of [500, 1000, 1500, 2000, 2500, 3000]) { const x = xp(fx); c.beginPath(); c.moveTo(x, pTop); c.lineTo(x, pBot); c.stroke(); c.fillText(`${fx}`, x, pBot + 7); }
