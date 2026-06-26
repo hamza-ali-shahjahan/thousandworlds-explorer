@@ -9,7 +9,7 @@
     <circle cx="560" cy="330" r="1" opacity="0.3"/><circle cx="30" cy="240" r="1" opacity="0.35"/>
   </g>
 
-  <text x="400" y="46" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="21" font-weight="500" fill="#e7ebf7">The Imagine Lab — coming soon</text>
+  <text x="400" y="46" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="21" font-weight="500" fill="#e7ebf7">The Imagine Lab — now live</text>
   <text x="400" y="72" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="13" fill="#9aa3be">Overlay real detections + simulated physics &#8594; an articulated, falsifiable hypothesis</text>
 
   <defs>
