@@ -671,12 +671,12 @@ export default function ThousandWorlds() {
               Too little <b style={{ color: '#6fa8ff' }}>starlight</b> (left) or a thin atmosphere freezes a world <b style={{ color: '#6fa8ff' }}>blue</b>; the right balance keeps liquid water <b style={{ color: '#46d49a' }}>green</b>; too much runs it away to a hot, Venus-like <b style={{ color: '#e24b4a' }}>red</b> state. The white dot is an <b>Earth twin</b> for scale. Hover a dot to spotlight it · click to open its world.
             </span>
           </span>
-        </div>
-        <div className="statnote" style={{ fontSize: 11, lineHeight: 1.5, color: '#69728f', margin: '-2px 2px 6px' }}>
-          This is the <b style={{ color: '#8aa0c8' }}>multi-complete</b> subset — {(meta.count).toLocaleString()} simulations with no missing fields — out of the full{' '}
-          <a href="https://github.com/astroautomata/ThousandWorlds/blob/main/dataset/README.md" target="_blank" rel="noopener noreferrer" style={{ color: '#8aa0c8' }}>
-            {(meta.full_count ?? 1760).toLocaleString()}-simulation dataset
-          </a>{' '}(multi-partial).
+          <div className="statnote" style={{ flexBasis: '100%', fontSize: 11, lineHeight: 1.5, color: '#69728f', margin: '-6px 0 0' }}>
+            This is the <b style={{ color: '#8aa0c8' }}>multi-complete</b> subset — {(meta.count).toLocaleString()} simulations with no missing fields — out of the full{' '}
+            <a href="https://github.com/astroautomata/ThousandWorlds/blob/main/dataset/README.md" target="_blank" rel="noopener noreferrer" style={{ color: '#8aa0c8' }}>
+              {(meta.full_count ?? 1760).toLocaleString()}-simulation dataset
+            </a>{' '}(multi-partial).
+          </div>
         </div>
         {tourStop != null && twStops[tourStop] && (
           <Tour
