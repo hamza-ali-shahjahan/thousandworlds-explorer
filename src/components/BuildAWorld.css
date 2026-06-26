@@ -15,16 +15,31 @@
 
 /* the payoff: meet your world's real cousin */
 .bw-cousin {
-  display: flex; flex-direction: column; gap: 2px; text-align: left; width: 100%; cursor: pointer;
-  padding: 11px 13px; border-radius: var(--radius);
+  display: flex; flex-direction: column; gap: 3px; text-align: left; width: 100%;
+  padding: 12px 14px; border-radius: var(--radius);
   background: linear-gradient(135deg, rgba(70, 212, 154, 0.13), rgba(111, 168, 255, 0.10));
-  border: 1px solid rgba(70, 212, 154, 0.45); transition: transform 0.14s ease, border-color 0.14s ease;
+  border: 1px solid rgba(70, 212, 154, 0.45);
 }
-.bw-cousin:hover { transform: translateY(-1px); border-color: var(--good); }
 .bw-cousin-eyebrow { font-size: 11.5px; color: var(--text-dim); }
 .bw-cousin-name { font-size: 16px; font-weight: 500; color: var(--text); }
-.bw-cousin-go { font-size: 12.5px; color: var(--good); font-weight: 400; }
 .bw-cousin-sum { font-size: 12px; color: var(--text-faint); }
+.bw-cousin-matched { font-size: 11px; line-height: 1.45; color: var(--text-faint); opacity: 0.85; margin-top: 1px; }
+
+/* the CORE action — a clear green CTA so a newbie knows this is the thing to click */
+.bw-cousin-cta {
+  align-self: flex-start; margin-top: 9px;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border-radius: 999px;
+  background: var(--good); border: 1px solid var(--good); color: #08130d;
+  font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
+  box-shadow: 0 2px 10px rgba(70, 212, 154, 0.28);
+  transition: transform 0.13s ease, box-shadow 0.13s ease, filter 0.13s ease;
+}
+.bw-cousin-cta:hover { transform: translateY(-1px); filter: brightness(1.06); box-shadow: 0 4px 16px rgba(70, 212, 154, 0.4); }
+.bw-cousin-cta:active { transform: translateY(0); }
+.bw-cousin-cta:focus-visible { outline: 2px solid var(--good); outline-offset: 2px; }
+.bw-cousin-arrow { font-size: 14px; transition: transform 0.13s ease; }
+.bw-cousin-cta:hover .bw-cousin-arrow { transform: translateX(3px); }
 
 /* the visible share card */
 .bw-sharecard { border: 1px solid var(--border-soft); border-radius: var(--radius-sm); background: var(--bg); padding: 8px 10px; }

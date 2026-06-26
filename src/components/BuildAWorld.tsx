@@ -98,7 +98,9 @@ function predictField(p: BuildParams, sims: TwWorld[], surf: Uint8Array, field: 
 // Recipes drawn from real ThousandWorlds simulations, so each lands in-distribution
 // and predicts its named climate (the benchmark is dominated by cool-star worlds).
 const PRESETS: { label: string; p: BuildParams }[] = [
-  { label: 'Temperate world', p: { flux: 2500, pressure: 0.4, co2: 0.09, st_teff: 5777, radius: 1, gravity: 9.81 } },
+  // a cool-star (M-dwarf) temperate world — the benchmark's dense region, where every slider
+  // (CO₂ & pressure included) has real climate leverage, so the predicted twin tracks your drags
+  { label: 'Temperate world', p: { flux: 1400, pressure: 3, co2: 8, st_teff: 3400, radius: 1, gravity: 9.81 } },
   { label: 'Snowball world', p: { flux: 740, pressure: 1, co2: 0, st_teff: 2600, radius: 1, gravity: 9.81 } },
   { label: 'Scorching world', p: { flux: 2400, pressure: 7, co2: 0.01, st_teff: 5777, radius: 1, gravity: 9.81 } },
 ];
@@ -113,20 +115,30 @@ export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, o
   const [shareCard, setShareCard] = useState<string | null>(null);
   const pred = useMemo(() => predictField(p, sims, surf, field, ranges), [p, sims, surf, field, ranges]);
 
-  // the payoff: the real discovered planet most like the world you built (by starlight, size, star type)
+  // the payoff: the real discovered planet most like the world you built — matched on what you
+  // can SEE (size, starlight, star colour) AND the CLIMATE you just built (predicted surface K
+  // vs the planet's equilibrium temp). Folding the climate in is what lets the sliders you drag
+  // most — pressure & CO₂, which move only the prediction — visibly change the twin; weights are
+  // balanced so no single dimension dominates (the climate term gets the loudest voice).
   const cousin = useMemo(() => {
     const nf = (v: number, [a, b]: [number, number]) => (v - a) / ((b - a) || 1);
+    const kR = ranges.tsurf ?? field.kRange;          // Kelvin range to normalise the climate term
     let best: World | null = null, bd = Infinity;
     for (const w of nasa) {
       if (w.insol == null || w.radius == null || w.st_teff == null) continue;
-      const df = (nf(p.flux, ranges.flux) - nf(w.insol * EARTH_FLUX, ranges.flux)) * 1.4;
+      if (pred && w.teq == null) continue;            // can't fairly place a world we can't climate-match — skip it (only a handful lack teq) rather than letting it dodge the penalty and win
       const dr = (nf(p.radius, ranges.radius) - nf(w.radius, ranges.radius)) * 1.0;
-      const dt = (nf(p.st_teff, ranges.st_teff) - nf(w.st_teff, ranges.st_teff)) * 1.0;
-      const d = df * df + dr * dr + dt * dt;
+      const df = (nf(p.flux, ranges.flux) - nf(w.insol * EARTH_FLUX, ranges.flux)) * 0.9;
+      const ds = (nf(p.st_teff, ranges.st_teff) - nf(w.st_teff, ranges.st_teff)) * 0.7;
+      let d = dr * dr + df * df + ds * ds;
+      if (pred) {                                     // the climate term — the strongest voice (carries pressure & CO₂, which feed only the prediction)
+        const dc = (nf(pred.mean, kR) - nf(w.teq!, kR)) * 2.3;
+        d += dc * dc;
+      }
       if (d < bd) { bd = d; best = w; }
     }
     return best;
-  }, [p, nasa, ranges]);
+  }, [p, pred, nasa, ranges, field]);
   const set = (k: keyof BuildParams) => (e: React.ChangeEvent<HTMLInputElement>) => setP({ ...p, [k]: Number(e.target.value) });
 
   const sliders: { k: keyof BuildParams; label: string; r: [number, number]; step: number; fmt: (v: number) => string }[] = [
@@ -193,11 +205,15 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
               </div>
               {!pred.inEnv && <div className="bw-warn">⚠ Outside the simulated grid ({pred.outOf.join(', ')}) — this is extrapolation, treat the prediction as a rough guess.</div>}
               {cousin && (
-                <button className="bw-cousin" onClick={() => onMeet(cousin)} title={`Explore ${cousin.name}`}>
+                <div className="bw-cousin">
                   <span className="bw-cousin-eyebrow">🌍 The real world most like {name || 'your world'}</span>
-                  <span className="bw-cousin-name">{cousin.name} <span className="bw-cousin-go">go meet it →</span></span>
+                  <span className="bw-cousin-name">{cousin.name}</span>
                   <span className="bw-cousin-sum">{n(cousin.radius)}× Earth-size{cousin.dist_ly != null ? ` · ${n(cousin.dist_ly)} ly away` : ''}{cousin.insol != null ? ` · ${n(cousin.insol)}× our sunlight` : ''}</span>
-                </button>
+                  <span className="bw-cousin-matched">matched by size, starlight &amp; predicted climate — a simulated analogy, not a habitability claim</span>
+                  <button className="bw-cousin-cta" onClick={() => onMeet(cousin)} title={`Explore ${cousin.name} on the map`}>
+                    Go meet {cousin.name} <span className="bw-cousin-arrow" aria-hidden="true">→</span>
+                  </button>
+                </div>
               )}
               <button className="btn bw-copy" onClick={copyWorld} title="Copy a shareable summary of this world">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{copied ? <path d="M20 6L9 17l-5-5" /> : <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></>}</svg>
