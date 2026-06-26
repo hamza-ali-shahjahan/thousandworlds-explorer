@@ -13,6 +13,7 @@ import Tour from './components/Tour';
 import AuthMenu from './components/AuthMenu';
 import AdminDashboard from './components/AdminDashboard';
 import CreationsViews from './components/CreationsViews';
+import MobileNotice from './components/MobileNotice';
 import { resolveStop, randomWorld, TOUR } from './lib/tour';
 
 const allBands = (): Set<BandLabel> => new Set(TEMP_BANDS.map((b) => b.label));
@@ -187,6 +188,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <MobileNotice />
       <AdminDashboard />
       <CreationsViews />
       <header className="topbar">
@@ -203,8 +205,10 @@ export default function App() {
           <button className={dataset === 'tw' ? 'on' : ''} role="tab" aria-selected={dataset === 'tw'} onClick={() => setDataset('tw')}>Simulated · ThousandWorlds</button>
           <button className={dataset === 'lab' ? 'on' : ''} role="tab" aria-selected={dataset === 'lab'} onClick={() => setDataset('lab')}>Imagine · Lab</button>
         </div>
-        <span className="src">{dataset === 'nasa' ? `NASA Exoplanet Archive · ${meta.total.toLocaleString()} worlds` : dataset === 'lab' ? 'Imagine Lab · overlay real + simulated · honest hypotheses' : 'ThousandWorlds benchmark · 1,659 climates · CC-BY-4.0'}</span>
-        <AuthMenu />
+        <div className="tb-right">
+          <span className="src">{dataset === 'nasa' ? `NASA Exoplanet Archive · ${meta.total.toLocaleString()} worlds` : dataset === 'lab' ? 'Imagine Lab · overlay real + simulated · honest hypotheses' : 'ThousandWorlds benchmark · 1,659 climates · CC-BY-4.0'}</span>
+          <AuthMenu />
+        </div>
       </header>
       {dataset === 'tw' ? <ThousandWorlds /> : dataset === 'lab' ? <ImagineLab /> : (
       <div className={`main${selected ? ' sel' : ''}${navOpen ? ' navopen' : ''}`}>

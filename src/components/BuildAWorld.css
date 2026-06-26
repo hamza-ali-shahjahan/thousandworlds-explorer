@@ -4,6 +4,9 @@
 .bw-lede { grid-column: 1 / -1; font-size: 13px; line-height: 1.55; color: var(--text-dim); margin: 0; }
 .bw-lede b { color: var(--text); font-weight: 500; }
 .bw-copy { align-self: flex-start; margin-top: 2px; }
+.bw-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; align-self: flex-start; margin-top: 2px; }
+.bw-actions .bw-copy { margin-top: 0; }
+.bw-actions .ssb { margin-top: 0; }
 
 /* name your world */
 .bw-name { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
@@ -68,6 +71,7 @@
 
 .bw-slider { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; }
 .bw-sl-label { font-size: 12.5px; color: var(--text-dim); grid-column: 1 / -1; }
+.bw-sl-sparse { color: var(--text-faint); font-style: italic; }
 .bw-slider input[type="range"] { width: 100%; accent-color: var(--accent); }
 .bw-sl-val { font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 

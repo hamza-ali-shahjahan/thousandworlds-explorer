@@ -169,15 +169,15 @@ export default function FindingForge({ sims, nasa, seedName, onClose, onMeet }: 
             <div className="ff-actions">
               <button className="cta ff-share" onClick={share}>{shared ? 'Image saved ✓' : '⤓ Share this finding (image)'}</button>
               <button className="linkbtn" onClick={() => setResult(null)}>← tweak the claim</button>
+              <SaveShareBar
+                type="finding"
+                title={claimText}
+                buildPayload={() => ({
+                  claim: claimText, sel, outcome,
+                  result: { verdict: result.verdict, n: result.n, frac: result.frac, median: result.median, lo: result.lo, hi: result.hi, realTargets: result.realTargets.length },
+                })}
+              />
             </div>
-            <SaveShareBar
-              type="finding"
-              title={claimText}
-              buildPayload={() => ({
-                claim: claimText, sel, outcome,
-                result: { verdict: result.verdict, n: result.n, frac: result.frac, median: result.median, lo: result.lo, hi: result.hi, realTargets: result.realTargets.length },
-              })}
-            />
           </div>
         )}
 

@@ -8,6 +8,9 @@ import type { World } from '../types';
 import { n } from '../lib/util';
 
 const EARTH_FLUX = 1361;
+// d(surface temp)/d(star Teff), K per K — OLS over all 1,659 benchmark sims.
+// Warmer star → cooler planet (the M-dwarf near-IR / ice-albedo effect the GCMs encode).
+const TEFF_SLOPE = -0.01426;
 // a little name generator so a built world feels owned the moment you open it
 const NAME_A = ['Verda', 'Aurel', 'Nyx', 'Thala', 'Cinder', 'Pyra', 'Glaci', 'Vesper', 'Cael', 'Mira', 'Orin', 'Zephyr'];
 const NAME_B = ['ia', 'on', 'is', 'os', 'una', 'ara', 'eth', 'or', 'yx', 'a'];
@@ -43,7 +46,7 @@ const pct = (xs: number[], p: number) => { const a = xs.slice().sort((x, y) => x
 export interface BuildParams { flux: number; pressure: number; co2: number; st_teff: number; radius: number; gravity: number; }
 // a built world the user can drop onto the Lab scatter beside the real planets (flux × pressure, coloured by predicted climate)
 export interface BuiltWorld { name: string; flux: number; pressure: number; mean: number; reg: string; }
-interface Prediction { field: Uint8Array; mean: number; lo: number; hi: number; reg: string; inEnv: boolean; outOf: string[]; n: number; }
+interface Prediction { field: Uint8Array; mean: number; lo: number; hi: number; reg: string; inEnv: boolean; outOf: string[]; n: number; d12: number; }
 
 // kNN over the sims (same normalised-distance dims/weights as the Lab's translate),
 // then blend the nearest worlds' surface fields cell-by-cell.
@@ -91,11 +94,34 @@ function predictField(p: BuildParams, sims: TwWorld[], surf: Uint8Array, field: 
   const temps = near.map((x) => x.s.tsurf);
   const wsumAll = wts.reduce((a, b) => a + b, 0);
   const mean = near.reduce((acc2, x, n) => acc2 + x.s.tsurf * wts[n], 0) / wsumAll;
+
+  // --- honest star-temperature residual ---------------------------------------
+  // The kNN can only average existing sims, so dragging star temperature through the
+  // benchmark's Teff "desert" (~3500-5500 K) barely moves the prediction. The sims DO
+  // encode a real slope (TEFF_SLOPE, above). We re-inject ONLY that one slope, on the gap
+  // between the built Teff and the neighbours' mean Teff, damped to ~0 at rest and faded
+  // out once we leave the densely-simulated region. We do NOT add flux/pressure/CO₂ trend
+  // terms (the kNN already moves those) and do NOT touch the distance weights — keeping the
+  // nudge small, signed by real physics, and honest rather than a faked smooth curve.
+  const d12 = Math.sqrt(near[near.length - 1].d);                      // ~0.12-0.21 in core, 0.5+ deep OOD
+  const nbrTeff = near.reduce((a, x, idx) => a + x.s.st_teff * wts[idx], 0) / wsumAll;
+  const conf = clamp(1 - (d12 - 0.30) / 0.30, 0, 1);                   // 1 in-core -> 0 by d12~0.60
+  const corr = clamp(TEFF_SLOPE * (p.st_teff - nbrTeff) * conf, -30, 30);
+  const meanC = clamp(mean + corr, lo, hi);                           // clamp to the PHYSICAL field range
+  if (corr !== 0) {                                                   // shift the field by the same offset so map = headline
+    for (let c = 0; c < cells; c++) {
+      if (out[c] === 0) continue;
+      const t0 = lo + ((out[c] - 1) / 254) * (hi - lo);
+      out[c] = 1 + Math.round(clamp((clamp(t0 + corr, lo, hi) - lo) / (hi - lo) * 254, 0, 254));
+    }
+  }
+  // ---------------------------------------------------------------------------
+
   const outOf: string[] = [];
   const chk = (label: string, v: number, [a, b]: [number, number]) => { if (v < a || v > b) outOf.push(label); };
   chk('starlight', p.flux, R.flux); chk('pressure', p.pressure, R.pressure); chk('CO₂', p.co2, R.co2);
   chk('star temperature', p.st_teff, R.st_teff); chk('planet size', p.radius, R.radius); chk('gravity', p.gravity, R.gravity);
-  return { field: out, mean, lo: pct(temps, 0.1), hi: pct(temps, 0.9), reg: regime(mean), inEnv: outOf.length === 0, outOf, n: k };
+  return { field: out, mean: meanC, lo: pct(temps, 0.1), hi: pct(temps, 0.9), reg: regime(meanC), inEnv: outOf.length === 0, outOf, n: k, d12 };
 }
 
 // Recipes drawn from real ThousandWorlds simulations, so each lands in-distribution
@@ -144,13 +170,13 @@ export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, o
   }, [p, pred, nasa, ranges, field]);
   const set = (k: keyof BuildParams) => (e: React.ChangeEvent<HTMLInputElement>) => setP({ ...p, [k]: Number(e.target.value) });
 
-  const sliders: { k: keyof BuildParams; label: string; r: [number, number]; step: number; fmt: (v: number) => string }[] = [
-    { k: 'flux', label: 'Starlight (stellar flux)', r: ranges.flux, step: 10, fmt: (v) => `${Math.round(v)} W/m²` },
-    { k: 'st_teff', label: 'Star temperature', r: ranges.st_teff, step: 10, fmt: (v) => `${Math.round(v)} K` },
-    { k: 'pressure', label: 'Surface pressure', r: ranges.pressure, step: 0.1, fmt: (v) => `${v.toFixed(1)} bar` },
-    { k: 'co2', label: 'CO₂', r: ranges.co2, step: 0.5, fmt: (v) => `${v.toFixed(1)} %` },
-    { k: 'radius', label: 'Planet size', r: ranges.radius, step: 0.01, fmt: (v) => `${v.toFixed(2)}× Earth` },
-    { k: 'gravity', label: 'Gravity', r: ranges.gravity, step: 0.1, fmt: (v) => `${v.toFixed(1)} m/s²` },
+  const sliders: { k: keyof BuildParams; label: string; r: [number, number]; step: number; fmt: (v: number) => string; dense: [number, number] }[] = [
+    { k: 'flux', label: 'Starlight (stellar flux)', r: ranges.flux, step: 10, fmt: (v) => `${Math.round(v)} W/m²`, dense: [500, 2400] },
+    { k: 'st_teff', label: 'Star temperature', r: ranges.st_teff, step: 10, fmt: (v) => `${Math.round(v)} K`, dense: [2500, 3300] },
+    { k: 'pressure', label: 'Surface pressure', r: ranges.pressure, step: 0.1, fmt: (v) => `${v.toFixed(1)} bar`, dense: [0.1, 8] },
+    { k: 'co2', label: 'CO₂', r: ranges.co2, step: 0.5, fmt: (v) => `${v.toFixed(1)} %`, dense: [0, 1] },
+    { k: 'radius', label: 'Planet size', r: ranges.radius, step: 0.01, fmt: (v) => `${v.toFixed(2)}× Earth`, dense: [0.8, 1.2] },
+    { k: 'gravity', label: 'Gravity', r: ranges.gravity, step: 0.1, fmt: (v) => `${v.toFixed(1)} m/s²`, dense: [8, 12] },
   ];
   const col = pred ? regimeColor(pred.mean) : '#46d49a';
 
@@ -167,9 +193,9 @@ The recipe:
   Gravity: ${p.gravity.toFixed(1)} m/s²
 
 Predicted surface: ${Math.round(pred.mean)} K (${kToC(pred.mean)}) — ${pred.reg}${pred.inEnv ? '' : ' [OUTSIDE the simulated grid — extrapolation]'}
-${pred.n} nearest simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K${cousin ? `.\nClosest real world: ${cousin.name} (${n(cousin.radius)}× Earth, ${n(cousin.dist_ly)} ly away)` : ''}.
+${pred.d12 <= 0.30 && pred.inEnv ? `12 nearby simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K` : `Few comparable simulations here (${Math.round(pred.lo)}–${Math.round(pred.hi)} K) — past the densely-simulated region`}${cousin ? `.\nClosest real world: ${cousin.name} (${n(cousin.radius)}× Earth, ${n(cousin.dist_ly)} ly away)` : ''}.
 
-A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al., CC-BY-4.0) — a simulated analogy, not an observation or a habitability claim.`;
+A fast nearest-analog estimator over the ThousandWorlds benchmark (Stevenson et al. 2026, CC-BY-4.0), with a small physically-signed star-temperature nudge — not the GPLFR emulator. A simulated analogy, not an observation or a habitability claim.`;
     setShareCard(txt);
     navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }).catch(() => {});
   };
@@ -188,13 +214,17 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
             <span className="bw-presetlabel">Start from</span>
             {PRESETS.map((pr) => <button key={pr.label} className="chip sm" onClick={() => setP(pr.p)}>{pr.label}</button>)}
           </div>
-          {sliders.map((s) => (
-            <label className="bw-slider" key={s.k}>
-              <span className="bw-sl-label">{s.label}</span>
-              <input type="range" min={s.r[0]} max={s.r[1]} step={s.step} value={clamp(p[s.k], s.r[0], s.r[1])} onChange={set(s.k)} />
-              <b className="bw-sl-val">{s.fmt(p[s.k])}</b>
-            </label>
-          ))}
+          {sliders.map((s) => {
+            const v = clamp(p[s.k], s.r[0], s.r[1]);
+            const sparse = v < s.dense[0] || v > s.dense[1];
+            return (
+              <label className="bw-slider" key={s.k}>
+                <span className="bw-sl-label">{s.label}{sparse && <span className="bw-sl-sparse" title="The benchmark simulates few worlds here — the estimate is rougher and flattens."> · sparsely simulated</span>}</span>
+                <input type="range" min={s.r[0]} max={s.r[1]} step={s.step} value={v} onChange={set(s.k)} />
+                <b className="bw-sl-val">{s.fmt(p[s.k])}</b>
+              </label>
+            );
+          })}
         </div>
 
         <div className="bw-result">
@@ -204,7 +234,16 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
               <div className="bw-readout">
                 <span className="bw-badge" style={{ color: col, borderColor: col }}>{pred.reg}</span>
                 <span className="bw-temp">Predicted surface ≈ <b style={{ color: col }}>{Math.round(pred.mean)} K ({kToC(pred.mean)})</b></span>
-                <span className="bw-band">{pred.n} nearest simulations span {Math.round(pred.lo)}–{Math.round(pred.hi)} K</span>
+                {(() => {
+                  const firm = pred.d12 <= 0.30 && pred.inEnv;
+                  return (
+                    <span className="bw-band" title="How densely the benchmark simulates worlds like this one">
+                      {firm
+                        ? `Firm estimate · 12 nearby simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K`
+                        : `Rough estimate · few comparable simulations here (${Math.round(pred.lo)}–${Math.round(pred.hi)} K) — past the densely-simulated region, so the value flattens and is less certain`}
+                    </span>
+                  );
+                })()}
               </div>
               {!pred.inEnv && <div className="bw-warn">⚠ Outside the simulated grid ({pred.outOf.join(', ')}) — this is extrapolation, treat the prediction as a rough guess.</div>}
               {onAddToMap && (
@@ -224,20 +263,22 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
                   </button>
                 </div>
               )}
-              <button className="btn bw-copy" onClick={copyWorld} title="Copy a shareable summary of this world">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{copied ? <path d="M20 6L9 17l-5-5" /> : <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></>}</svg>
-                {copied ? 'Copied ✓' : shareCard ? 'Copy again' : 'Copy this world'}
-              </button>
-              <SaveShareBar
-                type="world"
-                title={name.trim() || 'Your world'}
-                buildPayload={() => ({
-                  name: name.trim() || 'Your world',
-                  params: p,
-                  prediction: { mean: pred.mean, lo: pred.lo, hi: pred.hi, reg: pred.reg, inEnv: pred.inEnv, outOf: pred.outOf, n: pred.n },
-                  cousin: cousin?.name ?? null,
-                })}
-              />
+              <div className="bw-actions">
+                <button className="btn bw-copy" onClick={copyWorld} title="Copy a shareable summary of this world">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{copied ? <path d="M20 6L9 17l-5-5" /> : <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></>}</svg>
+                  {copied ? 'Copied ✓' : shareCard ? 'Copy again' : 'Copy this world'}
+                </button>
+                <SaveShareBar
+                  type="world"
+                  title={name.trim() || 'Your world'}
+                  buildPayload={() => ({
+                    name: name.trim() || 'Your world',
+                    params: p,
+                    prediction: { mean: pred.mean, lo: pred.lo, hi: pred.hi, reg: pred.reg, inEnv: pred.inEnv, outOf: pred.outOf, n: pred.n },
+                    cousin: cousin?.name ?? null,
+                  })}
+                />
+              </div>
               {shareCard && (
                 <div className="bw-sharecard">
                   <div className="bw-shareok">{copied ? '✓ Copied to your clipboard!' : 'Paste it (⌘V / Ctrl+V) anywhere — a note, a message — to share.'}</div>
@@ -247,7 +288,7 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
             </>
           ) : <div className="bw-empty">Move a slider to predict a climate.</div>}
           <p className="bw-honest">
-            A fast <b>stand-in</b>: this blends the surface fields of the nearest real ThousandWorlds simulations — <i>not</i> the GPLFR emulator (yet). It’s wired so the real emulator drops straight in. A simulated analogy, not an observation or a habitability claim.
+            <b>How this works — a fast nearest-analog estimator.</b> We find the real ThousandWorlds simulations closest to the planet you built and blend their surface-temperature fields. Because the benchmark simulates very few stars between M-dwarf and Sun-like, we add a small physically-signed nudge for star temperature (in these GCMs a warmer star tends to <i>cool</i> the planet — the M-dwarf near-infrared / ice-albedo effect), damped to nothing once you leave the simulated region. It is <i>not</i> the GPLFR / PCA-GBT emulator yet — it’s an honest interpolation over 1,659 GCM runs, wired so the real emulator drops in behind this same control. A simulated analogy, not an observation, a prediction of a real planet, or a habitability claim. The benchmark is dominated by cool-star, low-CO₂, Earth-sized worlds, so estimates are firmest there and get rougher — and deliberately flatten — toward Sun-like stars, thick CO₂, or extreme size/gravity.
           </p>
         </div>
       </div>
