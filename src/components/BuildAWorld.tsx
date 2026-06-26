@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Modal from './Modal';
 import SaveShareBar from './SaveShareBar';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
@@ -6,6 +6,7 @@ import './BuildAWorld.css';
 import type { TwWorld } from './ThousandWorlds';
 import type { World } from '../types';
 import { n } from '../lib/util';
+import { PcaGbtEmulator, type Prediction as EmuPrediction } from '../lib/emulator';
 
 const EARTH_FLUX = 1361;
 // d(surface temp)/d(star Teff), K per K — OLS over all 1,659 benchmark sims.
@@ -19,10 +20,12 @@ const randomName = () => NAME_A[Math.floor(Math.random() * NAME_A.length)] + NAM
 // ---------------------------------------------------------------------------
 // Phase 2 (interactive emulator demo) — STAND-IN engine.
 // You build a hypothetical planet with sliders; we predict its full surface-
-// temperature field by finding the nearest real ThousandWorlds simulations and
-// blending THEIR surface fields (inverse-distance weighted). It's an honest
-// nearest-neighbour surrogate — not the GPLFR emulator yet — and it's wired so
-// Ed's real emulator can drop in behind the same interface later.
+// temperature field with the trained PCA-GBT emulator (../lib/emulator.ts) —
+// the ThousandWorlds baseline, exported to ONNX and run client-side in your
+// browser. When the model can't load, predictField() below is the fallback: an
+// honest nearest-neighbour surrogate that blends the closest real simulations'
+// surface fields (inverse-distance weighted), tagged source:'knn' so the UI
+// stays truthful about which engine produced the number.
 // ---------------------------------------------------------------------------
 
 function regime(t: number): string {
@@ -142,7 +145,19 @@ export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, o
   const [name, setName] = useState<string>(randomName);
   const [copied, setCopied] = useState(false);
   const [shareCard, setShareCard] = useState<string | null>(null);
-  const pred = useMemo(() => predictField(p, sims, surf, field, ranges), [p, sims, surf, field, ranges]);
+  // The real PCA-GBT emulator (client-side ONNX) loads once; until it's ready — or if it
+  // fails to load — Build-a-World uses the instant kNN stand-in. Each result carries a
+  // `source` so the UI stays honest about which engine produced the number.
+  const [emu, setEmu] = useState<PcaGbtEmulator | null>(null);
+  useEffect(() => { let live = true; PcaGbtEmulator.load().then((e) => { if (live) setEmu(e); }); return () => { live = false; }; }, []);
+  const [pred, setPred] = useState<EmuPrediction | null>(null);
+  useEffect(() => {
+    let live = true;
+    const knn = () => { const k = predictField(p, sims, surf, field, ranges); if (live) setPred(k ? { ...k, source: 'knn' as const } : null); };
+    if (emu) emu.predict(p, field, ranges).then((r) => { if (live) setPred(r); }).catch(knn);
+    else knn();
+    return () => { live = false; };
+  }, [emu, p, sims, surf, field, ranges]);
 
   // the payoff: the real discovered planet most like the world you built — matched on what you
   // can SEE (size, starlight, star colour) AND the CLIMATE you just built (predicted surface K
@@ -193,9 +208,11 @@ The recipe:
   Gravity: ${p.gravity.toFixed(1)} m/s²
 
 Predicted surface: ${Math.round(pred.mean)} K (${kToC(pred.mean)}) — ${pred.reg}${pred.inEnv ? '' : ' [OUTSIDE the simulated grid — extrapolation]'}
-${pred.d12 <= 0.30 && pred.inEnv ? `12 nearby simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K` : `Few comparable simulations here (${Math.round(pred.lo)}–${Math.round(pred.hi)} K) — past the densely-simulated region`}${cousin ? `.\nClosest real world: ${cousin.name} (${n(cousin.radius)}× Earth, ${n(cousin.dist_ly)} ly away)` : ''}.
+Surface spans ${Math.round(pred.lo)}–${Math.round(pred.hi)} K pole-to-equator${pred.inEnv ? '' : ' — extrapolating beyond the simulated grid'}${cousin ? `.\nClosest real world: ${cousin.name} (${n(cousin.radius)}× Earth, ${n(cousin.dist_ly)} ly away)` : ''}.
 
-A fast nearest-analog estimator over the ThousandWorlds benchmark (Stevenson et al. 2026, CC-BY-4.0), with a small physically-signed star-temperature nudge — not the GPLFR emulator. A simulated analogy, not an observation or a habitability claim.`;
+${pred.source === 'pca-gbt'
+      ? 'The PCA-GBT emulator (PCA + gradient-boosted trees) — the ThousandWorlds baseline (Stevenson et al. 2026, CC-BY-4.0) — running in your browser.'
+      : 'A fast nearest-analog estimator over the ThousandWorlds benchmark (Stevenson et al. 2026, CC-BY-4.0), with a small physically-signed star-temperature nudge — not the trained emulator.'} A simulated analogy, not an observation or a habitability claim.`;
     setShareCard(txt);
     navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }).catch(() => {});
   };
@@ -234,14 +251,26 @@ A fast nearest-analog estimator over the ThousandWorlds benchmark (Stevenson et 
               <div className="bw-readout">
                 <span className="bw-badge" style={{ color: col, borderColor: col }}>{pred.reg}</span>
                 <span className="bw-temp">Predicted surface ≈ <b style={{ color: col }}>{Math.round(pred.mean)} K ({kToC(pred.mean)})</b></span>
+                <span
+                  className={`bw-source ${pred.source === 'pca-gbt' ? 'is-model' : 'is-knn'}`}
+                  title={pred.source === 'pca-gbt'
+                    ? 'The trained PCA-GBT emulator (PCA + gradient-boosted trees), running in your browser — the official ThousandWorlds baseline'
+                    : 'A fast nearest-neighbour stand-in over the benchmark — the trained emulator is still loading or unavailable'}>
+                  {pred.source === 'pca-gbt' ? '⚛ PCA-GBT emulator' : '≈ nearest-neighbour estimate'}
+                </span>
                 {(() => {
-                  const firm = pred.d12 <= 0.30 && pred.inEnv;
+                  const span = `${Math.round(pred.lo)}–${Math.round(pred.hi)} K`;
+                  let txt: string;
+                  if (pred.source === 'pca-gbt')
+                    txt = pred.inEnv
+                      ? `Surface spans ${span} pole-to-equator`
+                      : `Surface spans ${span} — extrapolating beyond the simulated grid`;
+                  else
+                    txt = pred.d12 <= 0.30 && pred.inEnv
+                      ? `Quick estimate · nearest simulations span ${span}`
+                      : `Rough estimate · few comparable simulations here (${span}) — past the densely-simulated region, so the value flattens and is less certain`;
                   return (
-                    <span className="bw-band" title="How densely the benchmark simulates worlds like this one">
-                      {firm
-                        ? `Firm estimate · 12 nearby simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K`
-                        : `Rough estimate · few comparable simulations here (${Math.round(pred.lo)}–${Math.round(pred.hi)} K) — past the densely-simulated region, so the value flattens and is less certain`}
-                    </span>
+                    <span className="bw-band" title="How the prediction was made and how far it ranges across the globe">{txt}</span>
                   );
                 })()}
               </div>
@@ -287,9 +316,15 @@ A fast nearest-analog estimator over the ThousandWorlds benchmark (Stevenson et 
               )}
             </>
           ) : <div className="bw-empty">Move a slider to predict a climate.</div>}
-          <p className="bw-honest">
-            <b>How this works — a fast nearest-analog estimator.</b> We find the real ThousandWorlds simulations closest to the planet you built and blend their surface-temperature fields. Because the benchmark simulates very few stars between M-dwarf and Sun-like, we add a small physically-signed nudge for star temperature (in these GCMs a warmer star tends to <i>cool</i> the planet — the M-dwarf near-infrared / ice-albedo effect), damped to nothing once you leave the simulated region. It is <i>not</i> the GPLFR / PCA-GBT emulator yet — it’s an honest interpolation over 1,659 GCM runs, wired so the real emulator drops in behind this same control. A simulated analogy, not an observation, a prediction of a real planet, or a habitability claim. The benchmark is dominated by cool-star, low-CO₂, Earth-sized worlds, so estimates are firmest there and get rougher — and deliberately flatten — toward Sun-like stars, thick CO₂, or extreme size/gravity.
-          </p>
+          {pred?.source === 'pca-gbt' ? (
+            <p className="bw-honest">
+              <b>How this works — the PCA-GBT emulator, running in your browser.</b> This is the trained ThousandWorlds baseline (PCA compression + per-mode gradient-boosted trees, fit on 1,659 GCM runs), exported to ONNX and run locally — the same model and weights benchmarked in the paper. It compresses your planet’s parameters into a compact set of latent climate patterns, predicts them with the boosted trees, and decodes back to a 32×64 surface-temperature map in under a millisecond. A warmer star tends to <i>cool</i> the planet here (the M-dwarf near-infrared / ice-albedo effect) — that emerges from the model itself, not a hand-tuned rule. A simulated analogy, not an observation, a prediction of a real planet, or a habitability claim. The benchmark is dominated by cool-star, low-CO₂, Earth-sized worlds, so the emulator is most reliable there; beyond the simulated grid it extrapolates, flagged above.
+            </p>
+          ) : (
+            <p className="bw-honest">
+              <b>How this works — a fast nearest-analog stand-in.</b> The trained PCA-GBT emulator isn’t loaded here, so we fall back to finding the real ThousandWorlds simulations closest to the planet you built and blending their surface-temperature fields. Because the benchmark simulates very few stars between M-dwarf and Sun-like, we add a small physically-signed nudge for star temperature (in these GCMs a warmer star tends to <i>cool</i> the planet — the M-dwarf near-infrared / ice-albedo effect), damped to nothing once you leave the simulated region. An honest interpolation over 1,659 GCM runs — a simulated analogy, not an observation, a prediction of a real planet, or a habitability claim. The benchmark is dominated by cool-star, low-CO₂, Earth-sized worlds, so estimates are firmest there and get rougher — and deliberately flatten — toward Sun-like stars, thick CO₂, or extreme size/gravity.
+            </p>
+          )}
         </div>
       </div>
     </Modal>
