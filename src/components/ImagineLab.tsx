@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
-import Term from './Term';
 import type { World } from '../types';
 import type { TwWorld } from './ThousandWorlds';
 import { n, dotRadius } from '../lib/util';
@@ -18,16 +17,22 @@ function regime(t: number): string {
   if (t < 273) return 'Cold';
   if (t < 320) return 'Temperate';
   if (t < 373) return 'Hot';
-  return 'Runaway';
+  return 'Scorching';
+}
+// A friendly one-line "fate" badge for the result card.
+function verdict(t: number): { label: string; color: string } {
+  if (t < 240) return { label: 'Frozen solid', color: '#6fa8ff' };
+  if (t < 273) return { label: 'Cold', color: '#7fcfe6' };
+  if (t < 320) return { label: 'Temperate · liquid water possible', color: '#46d49a' };
+  if (t < 373) return { label: 'Hot', color: '#f0b24a' };
+  return { label: 'Scorching', color: '#e24b4a' };
 }
 const kToC = (k: number) => `${Math.round(k - 273.15)} °C`;
 const EARTH_FLUX = 1361;
 
 interface TwMeta { count: number; gcms: [string, number][]; ranges: Record<string, [number, number]>; license: string; paper: string; code: string; }
 
-// ---------- a tiny safe expression compiler (no eval) ----------
-// Supports + - * / % ^, parentheses, unary minus, functions (abs sqrt cbrt exp
-// log log10 min max pow) and named variables resolved from a context object.
+// ---------- a tiny safe expression compiler (no eval) — powers "build your own" ----------
 type Fn = (ctx: Record<string, number>) => number;
 const FUNCS: Record<string, (...a: number[]) => number> = {
   abs: Math.abs, sqrt: Math.sqrt, cbrt: Math.cbrt, exp: Math.exp,
@@ -70,7 +75,6 @@ function compile(src: string): Fn {
   if (i < s.length) throw new Error('unexpected trailing input');
   return root;
 }
-// Variables a real planet exposes to the equation builder.
 function planetCtx(w: World): Record<string, number> {
   return {
     R: w.radius ?? NaN, mass: w.mass ?? NaN, density: w.density ?? NaN,
@@ -79,12 +83,27 @@ function planetCtx(w: World): Record<string, number> {
     dist: w.dist_ly ?? NaN, esi: w.esi ?? NaN, ecc: w.ecc ?? NaN, smax: w.smax ?? NaN,
   };
 }
-const EQ_VARS = 'R · mass · density · insol · flux · teq · stT · period · dist · esi · ecc · smax';
+const EQ_VARS = 'R · mass · insol · flux · teq · stT · period · dist · esi';
 const EQ_EXAMPLES: [string, string][] = [
-  ['esi', 'NASA’s Earth-likeness'],
+  ['esi', 'Earth-likeness'],
   ['1 / (abs(teq - 288) + 1)', 'closest to Earth’s temperature'],
   ['esi / sqrt(dist)', 'Earth-like AND nearby'],
 ];
+// "Wishes" — plain-language lenses; each is secretly a ranking formula. (The newbie taps, never types.)
+const WISHES: { label: string; expr: string }[] = [
+  { label: 'Most Earth-like', expr: 'esi' },
+  { label: 'Earth-like & nearby', expr: 'esi / sqrt(dist)' },
+  { label: 'Closest to Earth’s temperature', expr: '1 / (abs(teq - 288) + 1)' },
+  { label: 'Super-Earths', expr: '1 / (abs(R - 1.5) + 0.3)' },
+];
+const CURATED = ['TRAPPIST-1 e', 'Proxima Cen b', 'Kepler-442 b', 'Kepler-186 f', 'TOI-700 d', 'Kepler-452 b', 'Kepler-22 b', 'LHS 1140 b', 'Kepler-1649 c', 'Teegarden b'];
+function planetSummary(w: World): string {
+  const parts: string[] = [];
+  if (w.radius != null) parts.push(`${n(w.radius)}× Earth-size`);
+  if (w.insol != null) parts.push(`${n(w.insol)}× our sunlight`);
+  if (w.dist_ly != null) parts.push(`${n(w.dist_ly)} ly away`);
+  return parts.join(' · ');
+}
 
 // ---------- the translator: nearest simulated analogs ----------
 interface Atmosphere { pressure: number; co2: number; }
@@ -122,15 +141,16 @@ function translate(w: World, atm: Atmosphere, sims: TwWorld[], R: Record<string,
   return { n: k, median, lo: pct(temps, 0.1), hi: pct(temps, 0.9), reg: regime(median), inEnv: outOf.length === 0, outOf, analog: new Set(near.map((x) => x.s.sid)), flux };
 }
 
-// ---------- the climate phase-diagram (flux x · pressure y) ----------
+// ---------- the climate map (flux x · pressure y) — the hero ----------
 const FX = { min: 400, max: 3100 };
 const PY = { min: 0.1, max: 12 };
 const M = { l: 56, r: 16, t: 30, b: 38 };
 const FONT = '11px ui-sans-serif, system-ui, -apple-system, sans-serif';
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const L10 = Math.log10;
+interface Pin { w: World; est: Estimate; }
 
-function LabField({ sims, planet, atm, est }: { sims: TwWorld[]; planet: World | null; atm: Atmosphere; est: Estimate | null }) {
+function LabField({ sims, pins, selName, atm }: { sims: TwWorld[]; pins: Pin[]; selName: string | null; atm: Atmosphere }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
@@ -159,9 +179,10 @@ function LabField({ sims, planet, atm, est }: { sims: TwWorld[]; planet: World |
     for (const p of [0.1, 0.3, 1, 3, 10]) { const y = yp(p); c.beginPath(); c.moveTo(M.l, y); c.lineTo(px1, y); c.stroke(); c.fillText(`${p}`, M.l - 7, y); }
     c.fillStyle = '#828bab'; c.textAlign = 'center'; c.textBaseline = 'bottom';
     c.fillText('stellar flux reaching the planet  (W/m²)  →', (M.l + px1) / 2, h - 2);
-    c.save(); c.translate(13, (pTop + pBot) / 2); c.rotate(-Math.PI / 2); c.textBaseline = 'top'; c.fillText('surface pressure (bar)  ·  assumed for the real planet', 0, 0); c.restore();
+    c.save(); c.translate(13, (pTop + pBot) / 2); c.rotate(-Math.PI / 2); c.textBaseline = 'top'; c.fillText('surface pressure (bar)  ·  your assumed atmosphere', 0, 0); c.restore();
 
-    const analog = est?.analog;
+    const selPin = pins.find((p) => p.w.name === selName) ?? null;
+    const analog = selPin?.est.analog;
     for (const s of sims) {
       if (s.pressure == null) continue;
       const isA = analog?.has(s.sid);
@@ -177,12 +198,13 @@ function LabField({ sims, planet, atm, est }: { sims: TwWorld[]; planet: World |
     c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.beginPath(); c.arc(ex, ey, 4.5, 0, 6.2832); c.stroke();
     c.fillStyle = '#cfd8ff'; c.textAlign = 'center'; c.textBaseline = 'bottom'; c.fillText('Earth', ex, ey - 7);
 
-    if (planet && est) {
-      const x = xp(est.flux), y = yp(atm.pressure);
-      c.fillStyle = tColor(est.median); c.globalAlpha = 0.95; c.beginPath(); c.arc(x, y, 7.5, 0, 6.2832); c.fill(); c.globalAlpha = 1;
-      c.strokeStyle = '#fff'; c.lineWidth = 2.5; c.beginPath(); c.arc(x, y, 10.5, 0, 6.2832); c.stroke();
-      c.fillStyle = '#fff'; c.font = '12px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
-      c.fillText(planet.name, x, y - 13);
+    for (const p of pins) {
+      const x = xp(p.est.flux), y = yp(atm.pressure), isSel = p.w.name === selName;
+      c.fillStyle = tColor(p.est.median); c.globalAlpha = 0.97;
+      c.beginPath(); c.arc(x, y, isSel ? 7.5 : 5.5, 0, 6.2832); c.fill(); c.globalAlpha = 1;
+      c.strokeStyle = '#fff'; c.lineWidth = isSel ? 2.5 : 1.5; c.beginPath(); c.arc(x, y, isSel ? 10.5 : 8, 0, 6.2832); c.stroke();
+      c.fillStyle = '#fff'; c.font = `${isSel ? 12 : 11}px ui-sans-serif, system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'bottom';
+      c.fillText(p.w.name, x, y - (isSel ? 13 : 11));
     }
   }
 
@@ -197,25 +219,104 @@ function LabField({ sims, planet, atm, est }: { sims: TwWorld[]; planet: World |
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, planet, atm, est]);
+  useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, pins, selName, atm]);
+
+  return <div className="mapwrap" ref={wrapRef}><canvas ref={cvRef} /></div>;
+}
+
+// ---------- the "Find a world" finder modal ----------
+const FILTERS: [string, string][] = [['all', 'All'], ['near', 'Nearby'], ['earth', 'Earth-size'], ['temp', 'Temperate-ish']];
+function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExpr }: {
+  planets: World[]; pinned: Set<string>; onPick: (w: World) => void; onTogglePin: (w: World) => void; onClose: () => void; initialExpr: string;
+}) {
+  const [q, setQ] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sortExpr, setSortExpr] = useState(initialExpr || 'esi');
+  const [advOpen, setAdvOpen] = useState(false);
+  const [eqSrc, setEqSrc] = useState('');
+  const [eqErr, setEqErr] = useState('');
+
+  const sortFn = useMemo(() => { try { return compile(sortExpr); } catch { return compile('esi'); } }, [sortExpr]);
+  const curatedSet = useMemo(() => {
+    const byName = new Map(planets.map((w) => [w.name, w]));
+    return CURATED.map((nm) => byName.get(nm)).filter((w): w is World => !!w);
+  }, [planets]);
+  const browsing = !q.trim() && filter === 'all';
+  const rows = useMemo(() => {
+    let list = planets;
+    const term = q.trim().toLowerCase();
+    if (term) list = list.filter((w) => `${w.name} ${w.host ?? ''}`.toLowerCase().includes(term));
+    if (filter === 'near') list = list.filter((w) => w.dist_ly != null && w.dist_ly < 50);
+    else if (filter === 'earth') list = list.filter((w) => w.radius != null && w.radius <= 1.6);
+    else if (filter === 'temp') list = list.filter((w) => w.teq != null && w.teq >= 250 && w.teq <= 330);
+    return list.map((w) => ({ w, v: (() => { try { const val = sortFn(planetCtx(w)); return isFinite(val) ? val : -Infinity; } catch { return -Infinity; } })() }))
+      .sort((a, b) => b.v - a.v).slice(0, 60).map((x) => x.w);
+  }, [planets, q, filter, sortFn]);
+
+  const applyAdv = () => { const src = eqSrc.trim(); if (!src) return; try { const f = compile(src); f(planetCtx(planets[0])); setSortExpr(src); setEqErr(''); } catch (e) { setEqErr(e instanceof Error ? e.message : 'could not read that'); } };
+  const wishLabel = WISHES.find((wi) => wi.expr === sortExpr)?.label;
+
+  const Row = ({ w }: { w: World }) => {
+    const on = pinned.has(w.name);
+    return (
+      <div className="finderrow">
+        <button className="finderpick" onClick={() => onPick(w)}>
+          <span className="fr-name">{w.name}</span>
+          <span className="fr-sum">{planetSummary(w)}</span>
+        </button>
+        <button className={`finderpin${on ? ' on' : ''}`} onClick={() => onTogglePin(w)} aria-label={on ? 'Remove from map' : 'Add to map'} title={on ? 'On the map — click to remove' : 'Add to the map (compare several)'}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{on ? <path d="M5 12l5 5L20 7" /> : <path d="M12 5v14M5 12h14" />}</svg>
+        </button>
+      </div>
+    );
+  };
 
   return (
-    <>
-      <div className="mapwrap" ref={wrapRef}>
-        <canvas ref={cvRef} />
+    <Modal title="Find a world to explore" onClose={onClose} wide labelledBy="lab-finder-title">
+      <div className="finder">
+        <input className="search" placeholder="Search by name…  (e.g. TRAPPIST, Kepler, Proxima)" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
+        <div className="finderfilters">
+          {FILTERS.map(([k, label]) => <button key={k} className={`chip${filter === k ? ' active' : ''}`} onClick={() => setFilter(k)}>{label}</button>)}
+          <span className="finderspacer" />
+          <span className="finderhint">click a world to explore it · <b>+</b> pins it to compare</span>
+        </div>
+
+        <div className="findersort">
+          <span>Sort by what you care about:</span>
+          {WISHES.map((wi) => <button key={wi.expr} className={`chip sm${sortExpr === wi.expr ? ' active' : ''}`} onClick={() => setSortExpr(wi.expr)}>{wi.label}</button>)}
+          <button className={`chip sm${advOpen ? ' active' : ''}`} onClick={() => setAdvOpen(!advOpen)}>Build your own…</button>
+        </div>
+        {advOpen && (
+          <div className="finderadv">
+            <p>Rank worlds by your own formula. Variables (per planet): <span className="mono">{EQ_VARS}</span> — a bigger result sorts first.</p>
+            <div className="eqrow">
+              <input className="search mono" placeholder="e.g. esi / sqrt(dist)" value={eqSrc} onChange={(e) => setEqSrc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') applyAdv(); }} />
+              <button className="btn primary" onClick={applyAdv}>Use it</button>
+            </div>
+            {eqErr && <div className="eqerror">⚠ {eqErr}</div>}
+            <div className="eqexamples">{EQ_EXAMPLES.map(([ex, why]) => <button key={ex} className="chip sm" onClick={() => { setEqSrc(ex); setSortExpr(ex); }} title={why}>{ex}</button>)}</div>
+          </div>
+        )}
+
+        <div className="finderlist">
+          {browsing && curatedSet.length > 0 && (
+            <>
+              <div className="finderlabel">Famous worlds to start with</div>
+              {curatedSet.map((w) => <Row key={`c-${w.name}`} w={w} />)}
+              <div className="finderlabel">More — sorted by “{wishLabel ?? 'your formula'}”</div>
+            </>
+          )}
+          {rows.filter((w) => !(browsing && curatedSet.some((c) => c.name === w.name))).map((w) => <Row key={w.name} w={w} />)}
+          {rows.length === 0 && <div className="finderempty">No worlds match — try a different search or filter.</div>}
+        </div>
+
+        {pinned.size > 0 && <div className="finderfoot"><span>{pinned.size} world{pinned.size > 1 ? 's' : ''} on the map</span><button className="btn primary" onClick={onClose}>Done</button></div>}
       </div>
-      <div className="legend">
-        <span><span className="sw" style={{ background: '#6fa8ff' }} />Snowball</span>
-        <span><span className="sw" style={{ background: '#46d49a' }} />Temperate</span>
-        <span><span className="sw" style={{ background: '#e24b4a' }} />Runaway</span>
-        <span><span className="sw ring" />Earth</span>
-        <span style={{ color: '#69728f' }}>· faint dots = simulated worlds · ringed = your planet’s closest analogs</span>
-      </div>
-    </>
+    </Modal>
   );
 }
 
-// ---------- the rigor gate ----------
+// ---------- the rigor gate (unchanged) ----------
 interface Claim { claim: string; mechanism: string; confounder: string; test: string; novelty: string; }
 const EMPTY_CLAIM: Claim = { claim: '', mechanism: '', confounder: '', test: '', novelty: '' };
 const filled = (s: string) => s.trim().length >= 12;
@@ -228,7 +329,7 @@ function RigorModal({ planet, atm, est, onClose }: { planet: World; atm: Atmosph
     { label: 'Stated assumptions', ok: true, gap: '' },
     { label: 'Inside simulated range', ok: est.inEnv, gap: `outside the simulated grid (${est.outOf.join(', ')}) — this is extrapolation, flag it` },
     { label: 'A clear claim', ok: filled(c.claim), gap: 'state the conjecture in one sentence' },
-    { label: 'A physical mechanism', ok: filled(c.mechanism), gap: 'say *why* it would be true (the physics)' },
+    { label: 'A physical mechanism', ok: filled(c.mechanism), gap: 'say why it would be true (the physics)' },
     { label: 'Confounders considered', ok: filled(c.confounder), gap: 'what bias / selection / small-sample effect could explain it away?' },
     { label: 'A falsifiable test', ok: filled(c.test), gap: 'what observation would confirm OR refute it?' },
     { label: 'Novelty addressed', ok: filled(c.novelty), gap: 'is this already known? what’s new here?' },
@@ -285,22 +386,22 @@ Novelty: ${c.novelty.trim() || '(unstated)'}
 }
 
 // ---------- intro wizard ----------
-function LabWizard({ onClose }: { onClose: () => void }) {
+function LabWizard({ onClose, onFind }: { onClose: () => void; onFind: () => void }) {
   return (
     <Modal onClose={onClose} labelledBy="lab-wiz-title">
       <div className="wizard">
-        <div className="wiztop"><span className="wizstep" id="lab-wiz-title">The Imagine Lab</span></div>
+        <div className="wiztop"><span className="wizstep" id="lab-wiz-title">Welcome to the Imagine Lab</span></div>
         <div className="wizbody">
-          <h3>Play, then forge</h3>
-          <p>This is a sandbox for your own theories. Two ways to use it:</p>
+          <h3>Discover a world in 4 steps</h3>
           <ul className="helplist tight">
-            <li><b>Play</b> — pick a <b>real discovered planet</b>, assume an atmosphere, and watch the simulated climate models <b>re-estimate its surface climate</b> from its nearest simulated analogs — a better guess than the crude equilibrium temperature.</li>
-            <li><b>Test your own equation</b> — write a formula over the real catalog and rank planets by <i>your</i> idea of what matters.</li>
-            <li><b>Forge</b> — when a hunch feels real, open the <b>rigor gate</b>: it turns it into a clearly-stated, falsifiable hypothesis and shows you exactly what’s still missing.</li>
+            <li><b>1 · Find a world</b> — pick a real discovered planet (browse the famous ones, or tap a wish like “Most Earth-like”).</li>
+            <li><b>2 · See its fate</b> — the climate models predict the surface temperature it would really have — a smarter guess than the textbook one.</li>
+            <li><b>3 · Tweak &amp; be surprised</b> — slide the atmosphere thicker or thinner and watch the climate flip. Its real air is unknown, so <i>you</i> explore the possibilities.</li>
+            <li><b>4 · Claim it</b> — found something? Turn it into a clear, testable hypothesis you can share.</li>
           </ul>
-          <p className="wiznote">Honest by design: these are <b>simulated analogies</b>, not observations or habitability claims. The Lab points at <i>places worth a closer look</i> — it never says a planet must exist.</p>
+          <p className="wiznote">Honest by design: these are <b>simulated analogies</b>, not observations or habitability claims — the Lab points at <i>places worth a closer look</i>.</p>
         </div>
-        <div className="wizctrl"><span /><button className="btn primary" onClick={onClose}>Start exploring</button></div>
+        <div className="wizctrl"><span /><button className="btn primary" onClick={() => { onClose(); onFind(); }}>Find my first world →</button></div>
       </div>
     </Modal>
   );
@@ -310,12 +411,11 @@ export default function ImagineLab() {
   const [nasa, setNasa] = useState<World[] | null>(null);
   const [sims, setSims] = useState<TwWorld[] | null>(null);
   const [meta, setMeta] = useState<TwMeta | null>(null);
+  const [pinned, setPinned] = useState<World[]>([]);
   const [selected, setSelected] = useState<World | null>(null);
   const [atm, setAtm] = useState<Atmosphere>({ pressure: 1, co2: 1 });
-  const [query, setQuery] = useState('');
-  const [eqSrc, setEqSrc] = useState('');
-  const [eqApplied, setEqApplied] = useState<{ fn: Fn; src: string } | null>(null);
-  const [eqError, setEqError] = useState('');
+  const [showCo2, setShowCo2] = useState(false);
+  const [finder, setFinder] = useState<{ expr: string } | null>(null);
   const [modal, setModal] = useState<'wizard' | 'rigor' | null>(null);
 
   useEffect(() => {
@@ -327,136 +427,105 @@ export default function ImagineLab() {
   }, []);
   useEffect(() => { if (nasa && sims && !localStorage.getItem('lab_seen')) { setModal('wizard'); localStorage.setItem('lab_seen', '1'); } }, [nasa, sims]);
 
-  // planets we can translate (have the inputs the models need)
   const translatable = useMemo(() => (nasa ?? []).filter((w) => w.insol != null && w.radius != null && w.st_teff != null), [nasa]);
-  const featured = useMemo(() => translatable.filter((w) => w.insol! >= 0.25 && w.insol! <= 2.4 && w.radius! < 2.2)
-    .slice().sort((a, b) => Math.abs((a.teq ?? 400) - 288) - Math.abs((b.teq ?? 400) - 288)).slice(0, 6), [translatable]);
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase(); if (!q) return [];
-    return translatable.filter((w) => `${w.name} ${w.host ?? ''}`.toLowerCase().includes(q)).slice(0, 8);
-  }, [translatable, query]);
-
-  const est = useMemo(() => (selected && sims && meta ? translate(selected, atm, sims, meta.ranges) : null), [selected, sims, meta, atm]);
-
-  const ranked = useMemo(() => {
-    if (!eqApplied || !nasa) return [];
-    return nasa.map((w) => ({ w, v: (() => { try { const v = eqApplied.fn(planetCtx(w)); return isFinite(v) ? v : null; } catch { return null; } })() }))
-      .filter((x): x is { w: World; v: number } => x.v != null)
-      .sort((a, b) => b.v - a.v).slice(0, 8);
-  }, [eqApplied, nasa]);
-
-  const applyEq = () => {
-    const src = eqSrc.trim(); if (!src) { setEqApplied(null); setEqError(''); return; }
-    try { const fn = compile(src); fn({ R: 1, mass: 1, density: 1, insol: 1, flux: 1361, teq: 288, stT: 5772, period: 365, dist: 4, esi: 1, ecc: 0, smax: 1 }); setEqApplied({ fn, src }); setEqError(''); }
-    catch (e) { setEqError(e instanceof Error ? e.message : 'could not read that formula'); }
-  };
+  const pinnedEst = useMemo(() => {
+    if (!sims || !meta) return [] as Pin[];
+    return pinned.map((w) => ({ w, est: translate(w, atm, sims, meta.ranges) })).filter((p): p is Pin => p.est != null);
+  }, [pinned, atm, sims, meta]);
+  const est = useMemo(() => pinnedEst.find((p) => p.w.name === selected?.name)?.est ?? null, [pinnedEst, selected]);
+  const pinnedNames = useMemo(() => new Set(pinned.map((w) => w.name)), [pinned]);
 
   if (!nasa || !sims || !meta) return <div className="loading">Loading the Imagine Lab…</div>;
+
+  const pick = (w: World) => { setPinned((ps) => (ps.some((p) => p.name === w.name) ? ps : [...ps, w])); setSelected(w); setFinder(null); };
+  const togglePin = (w: World) => setPinned((ps) => {
+    if (ps.some((p) => p.name === w.name)) { const next = ps.filter((p) => p.name !== w.name); if (selected?.name === w.name) setSelected(next[next.length - 1] ?? null); return next; }
+    return [...ps, w];
+  });
+  const surprise = () => { const w = translatable[Math.floor(Math.random() * translatable.length)]; if (w) pick(w); };
   const sel = selected;
+  const v = est ? verdict(est.median) : null;
+  const dteq = sel && est && sel.teq != null ? Math.round(est.median - sel.teq) : null;
+  const vsTeq = dteq == null ? '' : Math.abs(dteq) < 12 ? `about its textbook ${Math.round(sel!.teq!)} K estimate` : dteq > 0 ? `${dteq} K warmer than its textbook ${Math.round(sel!.teq!)} K estimate — the atmosphere traps heat` : `${-dteq} K cooler than its textbook ${Math.round(sel!.teq!)} K estimate`;
 
   return (
-    <div className="main tw3">
-      <aside className="sidebar">
-        <div className="starthere">
-          <button className="cta" onClick={() => setModal('wizard')}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v.01M11 12h1v4h1" /></svg>
-            How the Lab works
+    <div className="main lab">
+      <div className="labbar">
+        <div className="labactions">
+          <button className="cta" onClick={() => setFinder({ expr: 'esi' })}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+            Find a world
+          </button>
+          <button className="cta ghost" onClick={surprise}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M16 3h5v5M21 3l-7 7M8 21H3v-5M3 21l7-7M21 16v5h-5M15 15l6 6M3 8V3h5M9 9L3 3" /></svg>
+            Surprise me
+          </button>
+          <button className="cta ghost" onClick={() => setModal('wizard')}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></svg>
+            How it works
           </button>
         </div>
-
-        <div className="twwhat"><p className="twlede">Drop a <b>real discovered planet</b> onto the simulated climate physics, assume an atmosphere, and let the models re-estimate the climate it would actually have.</p></div>
-
-        <div className="section-label">1 · Pick a real planet</div>
-        <input className="search" placeholder="Search 6,300 real planets…" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <div className="chips" style={{ marginTop: 8 }}>
-          {(results.length ? results : featured).map((w) => (
-            <button key={w.name} className={`chip${sel?.name === w.name ? ' active' : ''}`} onClick={() => setSelected(w)} title={`${n(w.radius)}× Earth · ${w.insol}× Earth starlight`}>{w.name}</button>
-          ))}
+        <div className="labwishes">
+          <span className="labwishlabel">Show me…</span>
+          {WISHES.map((wi) => <button key={wi.expr} className="chip" onClick={() => setFinder({ expr: wi.expr })}>{wi.label}</button>)}
         </div>
-        {!results.length && <div className="labhint">featured: real planets closest to Earth’s temperature</div>}
-
-        <div className="section-label">2 · Assume its atmosphere</div>
-        <div className="slider-row">
-          <div className="lab"><span>Surface pressure</span><b>{atm.pressure.toFixed(1)} bar</b></div>
-          <input type="range" min={0.1} max={12} step={0.1} value={atm.pressure} onChange={(e) => setAtm({ ...atm, pressure: Number(e.target.value) })} />
-        </div>
-        <div className="slider-row">
-          <div className="lab"><span>CO₂</span><b>{atm.co2.toFixed(0)}%</b></div>
-          <input type="range" min={0} max={100} step={1} value={atm.co2} onChange={(e) => setAtm({ ...atm, co2: Number(e.target.value) })} />
-        </div>
-        <div className="labhint">The real planet’s atmosphere is unknown — so you set it, and the estimate moves with your assumption. That honesty is the point.</div>
-
-        <div className="section-label">3 · Test your own equation</div>
-        <div className="eqbuilder">
-          <input className="search mono" placeholder="score = …  e.g. esi / sqrt(dist)" value={eqSrc}
-            onChange={(e) => setEqSrc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') applyEq(); }} />
-          <div className="eqrow">
-            <button className="btn primary" onClick={applyEq}>Rank planets</button>
-            {eqApplied && <button className="linkbtn" onClick={() => { setEqApplied(null); setEqSrc(''); }}>clear</button>}
-          </div>
-          {eqError && <div className="eqerror">⚠ {eqError}</div>}
-          <div className="labhint">variables: {EQ_VARS}</div>
-          <div className="eqexamples">
-            {EQ_EXAMPLES.map(([ex, why]) => <button key={ex} className="chip sm" onClick={() => { setEqSrc(ex); }} title={why}>{ex}</button>)}
-          </div>
-          {ranked.length > 0 && (
-            <>
-              <div className="labhint" style={{ marginTop: 8 }}>top real planets by <span className="mono">{eqApplied?.src}</span> — click to translate:</div>
-              <div className="chips" style={{ marginTop: 6 }}>
-                {ranked.map((r) => <button key={r.w.name} className={`chip${sel?.name === r.w.name ? ' active' : ''}`} onClick={() => setSelected(r.w)} title={`score ${r.v.toPrecision(3)}`}>{r.w.name}</button>)}
-              </div>
-            </>
-          )}
-        </div>
-      </aside>
-
-      <div className="center">
-        <div className="statbar">
-          <div className="stat big"><div className="v">{translatable.length.toLocaleString()}</div><div className="k">real planets in simulated range</div></div>
-          <div className="stat"><div className="v">{meta.count.toLocaleString()}</div><div className="k">simulated analogs</div></div>
-          {est && <div className="stat"><div className="v" style={{ color: tColor(est.median) }}>{Math.round(est.median)}<span className="u">K · {est.reg}</span></div><div className="k">re-estimated surface</div></div>}
-        </div>
-        <div className="twintro">
-          <b>How to read this:</b> the faint dots are <Term name="gcm">simulated</Term> worlds; pick a real planet and it drops onto the map at its <Term name="flux">starlight</Term> and your assumed air pressure. Its <b>nearest simulated analogs</b> light up, and their temperatures become a re-estimate of its real climate — coloured <span style={{ color: '#6fa8ff' }}>frozen</span> → <span style={{ color: '#46d49a' }}>temperate</span> → <span style={{ color: '#e24b4a' }}>scorching</span>.
-        </div>
-        <div className="twcredit">
-          Real planets: <b>NASA Exoplanet Archive</b>. Climate physics: the <b>ThousandWorlds</b> benchmark (Stevenson, Cranmer et al.), {meta.license}. Re-estimates are <b>simulated analogies</b>, not observations or habitability claims.
-          <a href={meta.paper} target="_blank" rel="noreferrer"> paper</a> ·<a href={meta.code} target="_blank" rel="noreferrer"> code</a>
-        </div>
-        <LabField sims={sims} planet={sel} atm={atm} est={est} />
       </div>
 
-      <section className="detail">
-        {!sel || !est ? (
-          <div className="empty">Pick a real planet on the left — or write an equation and click one of your top-ranked worlds — to re-estimate the climate the physics would give it.</div>
-        ) : (
-          <>
-            <div className="dhead"><span className="dot" style={{ background: tColor(est.median) }} /><h2>{sel.name}</h2></div>
-            <div className="dtype">{est.reg} re-estimate · {sel.host ?? 'host star'} · {sel.method ?? 'discovered'}</div>
-            <p className="ddesc">Pushed through the climate models with your assumed atmosphere, {sel.name}’s nearest simulated analogs give a surface around <b>{Math.round(est.median)} K ({kToC(est.median)})</b> — a {est.reg.toLowerCase()} climate. {est.inEnv ? 'It sits inside the simulated grid.' : <span style={{ color: '#f0b24a' }}>Heads up: it’s outside the simulated grid ({est.outOf.join(', ')}) — this is extrapolation.</span>}</p>
-            <div className="grid2">
-              <div className="metric"><div className="k">Re-estimated surface</div><div className="v">{Math.round(est.median)}<span className="u">K</span></div></div>
-              <div className="metric"><div className="k">NASA equilibrium temp</div><div className="v">{sel.teq != null ? Math.round(sel.teq) : '—'}<span className="u">K</span></div></div>
-              <div className="metric"><div className="k">Analog spread</div><div className="v">{Math.round(est.lo)}–{Math.round(est.hi)}<span className="u">K</span></div></div>
-              <div className="metric"><div className="k">From</div><div className="v">{est.n}<span className="u">analogs</span></div></div>
-            </div>
-            <div className="section-label" style={{ marginBottom: 6 }}>The real planet</div>
-            <div className="rows">
-              <div className="r"><span className="k">Starlight</span><span>{Math.round(est.flux)} W/m² ({n(sel.insol)}× Earth)</span></div>
-              <div className="r"><span className="k">Size / mass</span><span>{n(sel.radius)}× · {sel.mass != null ? `${n(sel.mass)}× Earth` : 'mass unknown'}</span></div>
-              <div className="r"><span className="k">Star temperature</span><span>{sel.st_teff} K</span></div>
-              <div className="r"><span className="k">Distance</span><span>{sel.dist_ly != null ? `${n(sel.dist_ly)} light-years` : 'unknown'}</span></div>
-              <div className="r"><span className="k">Your assumption</span><span>{atm.pressure.toFixed(1)} bar · {atm.co2.toFixed(0)}% CO₂</span></div>
-            </div>
-            <button className="cta" style={{ marginTop: 16 }} onClick={() => setModal('rigor')}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 7.5-8 9-4.5-1.5-8-4-8-9V7z" /></svg>
-              Forge a hypothesis
-            </button>
-          </>
-        )}
-      </section>
+      {pinned.length > 0 && (
+        <div className="labpins">
+          <span className="labpinlabel">On the map:</span>
+          {pinned.map((w) => (
+            <span key={w.name} className={`labpin${selected?.name === w.name ? ' active' : ''}`}>
+              <button onClick={() => setSelected(w)}>{w.name}</button>
+              <button className="labpinx" onClick={() => togglePin(w)} aria-label={`Remove ${w.name}`}>×</button>
+            </span>
+          ))}
+        </div>
+      )}
 
-      {modal === 'wizard' && <LabWizard onClose={() => setModal(null)} />}
+      <LabField sims={sims} pins={pinnedEst} selName={selected?.name ?? null} atm={atm} />
+
+      {sel && est && v ? (
+        <div className="labresult">
+          <div className="lr-head">
+            <span className="lr-name">{sel.name}</span>
+            <span className="lr-badge" style={{ color: v.color, borderColor: v.color }}>{v.label}</span>
+            {!est.inEnv && <span className="lr-warn">⚠ outside the simulated range — treat as a rough guess</span>}
+          </div>
+          <p className="lr-say">Under a <b>{atm.pressure.toFixed(1)}-bar atmosphere</b>, the models predict a surface near <b style={{ color: v.color }}>{Math.round(est.median)} K ({kToC(est.median)})</b> — {vsTeq}. <span className="lr-faint">({est.n} nearest simulated analogs span {Math.round(est.lo)}–{Math.round(est.hi)} K.)</span></p>
+          <div className="lr-tweak">
+            <span className="lr-tlabel">thinner air</span>
+            <input type="range" min={0.1} max={12} step={0.1} value={atm.pressure} onChange={(e) => setAtm({ ...atm, pressure: Number(e.target.value) })} aria-label="assumed surface pressure" />
+            <span className="lr-tlabel">thicker air</span>
+            <b className="lr-tval">{atm.pressure.toFixed(1)} bar</b>
+            <button className="linkbtn" onClick={() => setShowCo2((s) => !s)}>{showCo2 ? 'hide CO₂' : 'CO₂'}</button>
+            <button className="cta lr-forge" onClick={() => setModal('rigor')}>Could this be a find? →</button>
+          </div>
+          {showCo2 && (
+            <div className="lr-tweak">
+              <span className="lr-tlabel">no CO₂</span>
+              <input type="range" min={0} max={100} step={1} value={atm.co2} onChange={(e) => setAtm({ ...atm, co2: Number(e.target.value) })} aria-label="assumed CO2 percent" />
+              <span className="lr-tlabel">thick CO₂</span>
+              <b className="lr-tval">{atm.co2.toFixed(0)}%</b>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="labresult labempty">
+          <b>Pick a real planet to begin.</b> Tap <b>Find a world</b> (or a “Show me…” wish) — it lands on the map and the physics predicts the climate it would really have.
+        </div>
+      )}
+
+      <div className="legend">
+        <span><span className="sw" style={{ background: '#6fa8ff' }} />Frozen</span>
+        <span><span className="sw" style={{ background: '#46d49a' }} />Temperate</span>
+        <span><span className="sw" style={{ background: '#e24b4a' }} />Scorching</span>
+        <span><span className="sw ring" />Earth</span>
+        <span style={{ color: '#69728f' }}>· faint dots = simulated worlds · your planet glows + its closest analogs ring up · {meta.license} · <a href={meta.paper} target="_blank" rel="noreferrer">paper</a></span>
+      </div>
+
+      {finder && <FinderModal planets={translatable} pinned={pinnedNames} onPick={pick} onTogglePin={togglePin} onClose={() => setFinder(null)} initialExpr={finder.expr} />}
+      {modal === 'wizard' && <LabWizard onClose={() => setModal(null)} onFind={() => setFinder({ expr: 'esi' })} />}
       {modal === 'rigor' && sel && est && <RigorModal planet={sel} atm={atm} est={est} onClose={() => setModal(null)} />}
     </div>
   );
