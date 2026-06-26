@@ -19,3 +19,19 @@ vite.config.d.ts
 # Raw API pulls can be regenerated with `npm run data`
 data/raw/
 .vercel
+
+# NEVER commit conversations, transcripts, or strategy/discussion notes — this is
+# an app repo, not a notebook. Defensive net so such files can't be staged by accident.
+NOTES
+NOTES.*
+*.notes.md
+notes/
+CONVERSATION*
+*-transcript.*
+*.transcript.*
+transcript*
+discussion*
+DISCUSSION*
+*.chat.md
+scratch/
+*.scratch.*
