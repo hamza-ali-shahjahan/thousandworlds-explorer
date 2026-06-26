@@ -156,6 +156,8 @@ function LabField({ sims, pins, selName, atm }: { sims: TwWorld[]; pins: Pin[]; 
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
+  const ptsRef = useRef<{ x: number; y: number; w: TwWorld }[]>([]);
+  const [hover, setHover] = useState<{ w: TwWorld; mx: number; my: number } | null>(null);
 
   const xp = (flux: number) => { const { w } = sizeRef.current; return M.l + (clamp(flux, FX.min, FX.max) - FX.min) / (FX.max - FX.min) * (w - M.l - M.r); };
   const yp = (p: number) => { const { h } = sizeRef.current; return M.t + (1 - (L10(clamp(p, PY.min, PY.max)) - L10(PY.min)) / (L10(PY.max) - L10(PY.min))) * (h - M.t - M.b); };
@@ -185,15 +187,18 @@ function LabField({ sims, pins, selName, atm }: { sims: TwWorld[]; pins: Pin[]; 
 
     const selPin = pins.find((p) => p.w.name === selName) ?? null;
     const analog = selPin?.est.analog;
+    const pts: { x: number; y: number; w: TwWorld }[] = [];
     for (const s of sims) {
       if (s.pressure == null) continue;
+      const x = xp(s.flux), y = yp(s.pressure), r = dotRadius(s.radius);
       const isA = analog?.has(s.sid);
       c.fillStyle = tColor(s.tsurf);
-      c.globalAlpha = analog && analog.size ? (isA ? 0.95 : 0.1) : 0.5;
-      c.beginPath(); c.arc(xp(s.flux), yp(s.pressure), dotRadius(s.radius), 0, 6.2832); c.fill();
-      if (isA) { c.globalAlpha = 0.9; c.strokeStyle = '#cdd6f4'; c.lineWidth = 1; c.beginPath(); c.arc(xp(s.flux), yp(s.pressure), dotRadius(s.radius) + 2, 0, 6.2832); c.stroke(); }
+      c.globalAlpha = analog && analog.size ? (isA ? 0.95 : 0.1) : 0.8;
+      c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+      if (isA) { c.globalAlpha = 0.9; c.strokeStyle = '#cdd6f4'; c.lineWidth = 1; c.beginPath(); c.arc(x, y, r + 2, 0, 6.2832); c.stroke(); }
+      pts.push({ x, y, w: s });
     }
-    c.globalAlpha = 1;
+    c.globalAlpha = 1; ptsRef.current = pts;
 
     const ex = xp(EARTH_FLUX), ey = yp(1);
     c.fillStyle = '#cfd8ff'; c.beginPath(); c.arc(ex, ey, 4.5, 0, 6.2832); c.fill();
@@ -223,7 +228,25 @@ function LabField({ sims, pins, selName, atm }: { sims: TwWorld[]; pins: Pin[]; 
   }, []);
   useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, pins, selName, atm]);
 
-  return <div className="mapwrap" ref={wrapRef}><canvas ref={cvRef} /></div>;
+  function onMove(e: React.MouseEvent) {
+    const rect = cvRef.current!.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    let best: TwWorld | null = null, bd = 200;
+    for (const p of ptsRef.current) { const d = (p.x - mx) ** 2 + (p.y - my) ** 2; if (d < bd) { bd = d; best = p.w; } }
+    setHover(best ? { w: best, mx, my } : null);
+  }
+
+  return (
+    <div className="mapwrap" ref={wrapRef}>
+      <canvas ref={cvRef} style={{ cursor: hover ? 'crosshair' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} />
+      {hover && (
+        <div className="tooltip" style={{ left: hover.mx > sizeRef.current.w - 220 ? hover.mx - 210 : hover.mx + 14, top: Math.max(6, hover.my - 10) }}>
+          <div className="tn">Simulated world · {hover.w.gcm}</div>
+          <div className="td">surface {Math.round(hover.w.tsurf)} K ({kToC(hover.w.tsurf)}) · {regime(hover.w.tsurf)}<br />{hover.w.flux} W/m² · {hover.w.pressure} bar</div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ---------- the "Find a world" finder modal ----------
@@ -419,7 +442,7 @@ function LabWizard({ onClose, onFind }: { onClose: () => void; onFind: () => voi
             <li><b>1 · Find a world</b> — pick a real discovered planet (browse the famous ones, or tap a wish like “Most Earth-like”).</li>
             <li><b>2 · See its fate</b> — the climate models predict the surface temperature it would really have — a smarter guess than the textbook one.</li>
             <li><b>3 · Tweak &amp; be surprised</b> — slide the atmosphere thicker or thinner and watch the climate flip. Its real air is unknown, so <i>you</i> explore the possibilities.</li>
-            <li><b>4 · Claim it</b> — found something? Turn it into a clear, testable hypothesis you can share.</li>
+            <li className="claim-spark"><b>4 · Claim it</b> — found something? Turn it into a clear, testable hypothesis you can share.</li>
           </ul>
           <p className="wiznote">Honest by design: these are <b>simulated analogies</b>, not observations or habitability claims — the Lab points at <i>places worth a closer look</i>.</p>
         </div>
@@ -440,6 +463,7 @@ export default function ImagineLab() {
   const [finder, setFinder] = useState<{ expr: string } | null>(null);
   const [modal, setModal] = useState<'wizard' | 'rigor' | 'build' | null>(null);
   const [surf, setSurf] = useState<Uint8Array | null>(null);
+  const [autoStarted, setAutoStarted] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -457,6 +481,22 @@ export default function ImagineLab() {
   }, [pinned, atm, sims, meta]);
   const est = useMemo(() => pinnedEst.find((p) => p.w.name === selected?.name)?.est ?? null, [pinnedEst, selected]);
   const pinnedNames = useMemo(() => new Set(pinned.map((w) => w.name)), [pinned]);
+
+  // Open with a worked example so a new user never lands on the blank/faded graph: auto-pin a
+  // curated starter that predicts a temperate (inviting) climate at the default atmosphere.
+  useEffect(() => {
+    if (autoStarted || !nasa || !sims || !meta || pinned.length > 0) return;
+    const byName = new Map(translatable.map((w) => [w.name, w]));
+    const curated = CURATED.map((nm) => byName.get(nm)).filter((w): w is World => !!w);
+    const scored = curated.map((w) => ({ w, m: translate(w, atm, sims, meta.ranges)?.median ?? null }))
+      .filter((x): x is { w: World; m: number } => x.m != null);
+    // prefer a temperate world (greenest — closest to ~293 K); else the warmest below scorching
+    const temperate = scored.filter((x) => x.m >= 273 && x.m <= 318).sort((a, b) => Math.abs(a.m - 293) - Math.abs(b.m - 293));
+    const warmest = scored.filter((x) => x.m < 320).sort((a, b) => b.m - a.m);
+    const starter = (temperate[0] ?? warmest[0])?.w ?? curated[0] ?? translatable[0];
+    if (starter) { setPinned([starter]); setSelected(starter); }
+    setAutoStarted(true);
+  }, [autoStarted, nasa, sims, meta, pinned, translatable, atm]);
 
   if (!nasa || !sims || !meta) return <div className="loading">Loading the Imagine Lab…</div>;
 

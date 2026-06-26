@@ -204,16 +204,22 @@ body.modal-open { overflow: hidden; }
   .cta.pulse { animation: none; box-shadow: 0 0 10px 0 rgba(111, 168, 255, 0.25); }
 }
 
-/* "this is awesome" sheen — a shimmer sweeping across a CTA to flag a special/new action */
+/* golden sheen — a shimmer flagging the most exciting actions (Build a world, "Claim it") */
 .cta.sheen { position: relative; overflow: hidden; }
-.cta.ghost.sheen { border-color: var(--accent); color: var(--text); }
-.cta.sheen::after {
+.cta.ghost.sheen { border-color: #f0b24a; color: #f0b24a; }
+.cta.sheen::after, .claim-spark::after {
   content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(115deg, transparent 38%, rgba(111, 168, 255, 0.45) 50%, transparent 62%);
+  background: linear-gradient(115deg, transparent 38%, rgba(240, 178, 74, 0.42) 50%, transparent 62%);
   transform: translateX(-130%); animation: ctasheen 3.6s ease-in-out infinite;
 }
 @keyframes ctasheen { 0%, 60% { transform: translateX(-130%); } 100% { transform: translateX(230%); } }
-@media (prefers-reduced-motion: reduce) { .cta.sheen::after { animation: none; } }
+.claim-spark {
+  position: relative; overflow: hidden; border-radius: var(--radius-sm);
+  background: rgba(240, 178, 74, 0.1); border: 1px solid rgba(240, 178, 74, 0.38);
+  padding: 7px 10px; margin: 2px -2px;
+}
+.claim-spark b { color: #f0b24a; }
+@media (prefers-reduced-motion: reduce) { .cta.sheen::after, .claim-spark::after { animation: none; } }
 
 /* first-run wizard (feature A) */
 .wiztop { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 14px; }
