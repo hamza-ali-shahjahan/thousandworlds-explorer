@@ -113,7 +113,10 @@ export default function App() {
   const [dir, setDir] = useState<1 | -1>(1);
   const [tourStop, setTourStop] = useState<number | null>(null);
   const [navOpen, setNavOpen] = useState(false);
-  const [dataset, setDataset] = useState<'nasa' | 'tw' | 'lab'>('nasa');
+  const [dataset, setDataset] = useState<'nasa' | 'tw' | 'lab'>(() => {
+    const ds = new URLSearchParams(window.location.search).get('ds');
+    return ds === 'tw' || ds === 'lab' ? ds : 'nasa';
+  });
   const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('nasa_tour_taken'));
 
   useEffect(() => {

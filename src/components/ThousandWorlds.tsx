@@ -4,7 +4,9 @@ import Term from './Term';
 import Tour from './Tour';
 import Modal from './Modal';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
-import { n, dotRadius } from '../lib/util';
+import TwTable from './TwTable';
+import TwCharts from './TwCharts';
+import { n, dotRadius, downloadText } from '../lib/util';
 
 // Plain-language decoder for the GCM (climate-model) codenames.
 const GCM_DESC: Record<string, string> = {
@@ -554,6 +556,8 @@ export default function ThousandWorlds() {
   const [modal, setModal] = useState<'models' | 'wizard' | null>(null);
   const [surf, setSurf] = useState<Uint8Array | null>(null);
   const [hero, setHero] = useState<{ rect: DOMRect; row: number } | null>(null);
+  const [view, setView] = useState<'map' | 'table' | 'charts'>('map');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     Promise.all([fetch('/thousandworlds.json').then((r) => r.json()), fetch('/thousandworlds-meta.json').then((r) => r.json())])
@@ -602,6 +606,21 @@ export default function ThousandWorlds() {
   const gotoStop = (i: number) => { const s = twStops[i]; if (!s) return; setTourStop(i); setSelected(s.world); };
   const startTour = () => { setGcms(allGcms()); setClimate('all'); setRanges({}); gotoStop(0); };
   const nextStop = () => { if (tourStop == null) return; if (tourStop >= twStops.length - 1) setTourStop(null); else gotoStop(tourStop + 1); };
+
+  const exportCsv = () => {
+    const cols: [string, (w: TwWorld) => string | number][] = [
+      ['sim_id', (w) => w.sid], ['gcm', (w) => w.gcm], ['radius_earth', (w) => w.radius ?? ''], ['gravity_ms2', (w) => w.gravity],
+      ['rotation_days', (w) => w.rotation], ['pressure_bar', (w) => w.pressure ?? ''], ['co2_pct', (w) => w.co2], ['ch4_pct', (w) => w.ch4],
+      ['flux_wm2', (w) => w.flux], ['star_teff_k', (w) => w.st_teff], ['surface_temp_k', (w) => w.tsurf], ['asr_wm2', (w) => w.asr], ['olr_wm2', (w) => w.olr], ['cloud_frac', (w) => w.cloud],
+    ];
+    const esc = (v: string | number) => { const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const lines = [cols.map((c) => c[0]).join(','), ...filtered.map((w) => cols.map((c) => esc(c[1](w))).join(','))];
+    downloadText(`thousandworlds-${filtered.length}-sims.csv`, lines.join('\n'));
+  };
+  const share = () => {
+    const url = `${window.location.origin}${window.location.pathname}?ds=tw`;
+    navigator.clipboard?.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }).catch(() => {});
+  };
 
   return (
     <div className="main tw3">
@@ -671,6 +690,20 @@ export default function ThousandWorlds() {
               Too little <b style={{ color: '#6fa8ff' }}>starlight</b> (left) or a thin atmosphere freezes a world <b style={{ color: '#6fa8ff' }}>blue</b>; the right balance keeps liquid water <b style={{ color: '#46d49a' }}>green</b>; too much runs it away to a hot, Venus-like <b style={{ color: '#e24b4a' }}>red</b> state. The white dot is an <b>Earth twin</b> for scale. Hover a dot to spotlight it · click to open its world.
             </span>
           </span>
+          <span className="spacer" style={{ flex: 1 }} />
+          <button className="btn" onClick={share} title="Copy a link to the Simulated view">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{copied ? <path d="M20 6L9 17l-5-5" /> : <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></>}</svg>
+            {copied ? 'Copied!' : 'Share'}
+          </button>
+          <button className="btn" onClick={exportCsv} title="Download the simulated worlds shown as CSV">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg>
+            CSV
+          </button>
+          <div className="viewtoggle" role="tablist" aria-label="View">
+            {(['map', 'table', 'charts'] as const).map((v) => (
+              <button key={v} className={view === v ? 'on' : ''} role="tab" aria-selected={view === v} onClick={() => setView(v)}>{v[0].toUpperCase() + v.slice(1)}</button>
+            ))}
+          </div>
           <div className="statnote" style={{ flexBasis: '100%', fontSize: 11, lineHeight: 1.5, color: '#69728f', margin: '-6px 0 0' }}>
             This is the <b style={{ color: '#8aa0c8' }}>multi-complete</b> subset — {(meta.count).toLocaleString()} simulations with no missing fields — out of the full{' '}
             <a href="https://github.com/astroautomata/ThousandWorlds/blob/main/dataset/README.md" target="_blank" rel="noopener noreferrer" style={{ color: '#8aa0c8' }}>
@@ -678,14 +711,20 @@ export default function ThousandWorlds() {
             </a>{' '}(multi-partial).
           </div>
         </div>
-        {tourStop != null && twStops[tourStop] && (
-          <Tour
-            index={tourStop} total={twStops.length}
-            title={twStops[tourStop].title} text={twStops[tourStop].text} worldName={`${twStops[tourStop].nick} · Sim #${twStops[tourStop].world.sid}`}
-            onPrev={() => { if (tourStop > 0) gotoStop(tourStop - 1); }} onNext={nextStop} onExit={() => setTourStop(null)}
-          />
+        {view === 'map' && (
+          <>
+            {tourStop != null && twStops[tourStop] && (
+              <Tour
+                index={tourStop} total={twStops.length}
+                title={twStops[tourStop].title} text={twStops[tourStop].text} worldName={`${twStops[tourStop].nick} · Sim #${twStops[tourStop].world.sid}`}
+                onPrev={() => { if (tourStop > 0) gotoStop(tourStop - 1); }} onNext={nextStop} onExit={() => setTourStop(null)}
+              />
+            )}
+            <ClimateScatter worlds={filtered} selected={selected} onSelect={setSelected} />
+          </>
         )}
-        <ClimateScatter worlds={filtered} selected={selected} onSelect={setSelected} />
+        {view === 'table' && <TwTable worlds={filtered} selected={selected} onSelect={setSelected} />}
+        {view === 'charts' && <TwCharts worlds={filtered} />}
       </div>
 
       <DetailTw
