@@ -264,8 +264,11 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
   const sortFn = useMemo(() => { try { return compile(sortExpr); } catch { return compile('esi'); } }, [sortExpr]);
   const curatedSet = useMemo(() => {
     const byName = new Map(planets.map((w) => [w.name, w]));
-    return CURATED.map((nm) => byName.get(nm)).filter((w): w is World => !!w);
-  }, [planets]);
+    const cs = CURATED.map((nm) => byName.get(nm)).filter((w): w is World => !!w);
+    // rank the famous starters by the active wish too, so picking a wish visibly reorders them
+    return cs.map((w) => ({ w, v: (() => { try { const val = sortFn(planetCtx(w)); return isFinite(val) ? val : -Infinity; } catch { return -Infinity; } })() }))
+      .sort((a, b) => b.v - a.v).map((x) => x.w);
+  }, [planets, sortFn]);
   const browsing = !q.trim() && filter === 'all';
   // how many real planets each filter surfaces — shown on the chips so a newbie sees what's available
   const filterCount = useMemo(() => ({
@@ -315,18 +318,20 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
           @media (prefers-reduced-motion: reduce) { .finder .buildyourown::before { animation: none; } }
           .finder .fcount { color: var(--text-faint); font-variant-numeric: tabular-nums; margin-left: 4px; }
           .finder .chip.active .fcount { color: var(--accent); }
+          .finder .finderqual { font-size: 12px; color: var(--text-faint); align-self: center; margin-right: 2px; }
           .finder .finderresult { font-size: 12px; color: var(--text-faint); margin: 2px 0 -2px; }
           .finder .finderresult b { color: var(--text-dim); font-weight: 500; }
         `}</style>
         <input className="search" placeholder="Search by name…  (e.g. TRAPPIST, Kepler, Proxima)" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
         <div className="finderfilters">
+          <span className="finderqual">Narrow to:</span>
           {FILTERS.map(([k, label]) => <button key={k} className={`chip${filter === k ? ' active' : ''}`} onClick={() => setFilter(k)}>{label} <span className="fcount">{filterCount[k].toLocaleString()}</span></button>)}
           <span className="finderspacer" />
           <span className="finderhint">click a world to explore it · <b>+</b> pins it to compare</span>
         </div>
 
         <div className="findersort">
-          <span>Sort by what you care about:</span>
+          <span className="finderqual">Rank by:</span>
           {WISHES.map((wi) => <button key={wi.expr} className={`chip sm${sortExpr === wi.expr ? ' active' : ''}`} onClick={() => setSortExpr(wi.expr)}>{wi.label}</button>)}
           <button className={`chip sm buildyourown${advOpen ? ' on' : ''}`} onClick={() => setAdvOpen(!advOpen)}>Build your own…</button>
         </div>
@@ -342,13 +347,13 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
           </div>
         )}
 
-        <div className="finderresult"><b>{total.toLocaleString()}</b> worlds{total > 60 ? ' (showing the closest 60)' : ''} · sorted by “{wishLabel ?? 'your formula'}”</div>
+        <div className="finderresult">Showing the top <b>{Math.min(60, total).toLocaleString()}</b> of {total.toLocaleString()} · ranked by “{wishLabel ?? 'your formula'}”</div>
         <div className="finderlist">
           {browsing && curatedSet.length > 0 && (
             <>
               <div className="finderlabel">Famous worlds to start with</div>
               {curatedSet.map((w) => <Row key={`c-${w.name}`} w={w} />)}
-              <div className="finderlabel">More — sorted by “{wishLabel ?? 'your formula'}”</div>
+              <div className="finderlabel">More — ranked by “{wishLabel ?? 'your formula'}”</div>
             </>
           )}
           {rows.filter((w) => !(browsing && curatedSet.some((c) => c.name === w.name))).map((w) => <Row key={w.name} w={w} />)}
@@ -571,7 +576,6 @@ export default function ImagineLab() {
             <span className="lr-tlabel">thicker air</span>
             <b className="lr-tval">{atm.pressure.toFixed(1)} bar</b>
             <button className="linkbtn" onClick={() => setShowCo2((s) => !s)}>{showCo2 ? 'hide CO₂' : 'CO₂'}</button>
-            <button className="cta lr-forge" onClick={() => setModal('rigor')}>Could this be a find? →</button>
           </div>
           {showCo2 && (
             <div className="lr-tweak">
@@ -581,6 +585,7 @@ export default function ImagineLab() {
               <b className="lr-tval">{atm.co2.toFixed(0)}%</b>
             </div>
           )}
+          <button className="cta lr-find" onClick={() => setModal('rigor')}>Could this be a find? →</button>
         </div>
       ) : (
         <div className="labresult labempty">

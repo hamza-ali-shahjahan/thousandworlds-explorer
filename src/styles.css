@@ -583,7 +583,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .lr-tweak input[type="range"] { flex: 1; min-width: 130px; max-width: 300px; accent-color: var(--accent); }
 .lr-tlabel { font-size: 11.5px; color: var(--text-faint); }
 .lr-tval { font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums; min-width: 54px; }
-.lr-forge { width: auto; margin-left: auto; }
+.lr-find { width: 100%; justify-content: center; margin-top: 12px; background: var(--accent); color: #07101f; border-color: var(--accent); font-weight: 600; }
+.lr-find:hover { background: #8ab8ff; border-color: #8ab8ff; }
 
 .finder { display: flex; flex-direction: column; gap: 11px; }
 .finderfilters { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
@@ -611,5 +612,4 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 @media (max-width: 720px) {
   .main.lab .mapwrap { min-height: 56vh; margin: 0 14px; }
   .labbar, .labpins, .labresult { padding-left: 14px; padding-right: 14px; }
-  .lr-forge { margin-left: 0; width: 100%; }
 }
