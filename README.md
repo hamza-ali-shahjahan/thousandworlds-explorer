@@ -5,7 +5,7 @@
 <h1 align="center">ThousandWorlds Explorer</h1>
 
 <p align="center">
-  <b>🔭 Live → <a href="https://thousandworlds-explorer.vercel.app">thousandworlds-explorer.vercel.app</a></b>
+  <b>🔭 Live → <a href="https://thousandworldsexplorer.com">thousandworldsexplorer.com</a></b>
 </p>
 
 <p align="center">
@@ -81,7 +81,7 @@ look*, never "planets that must exist."
 
 **Just want to look around?** You don't need to install anything — open the live site:
 
-### 👉 [thousandworlds-explorer.vercel.app](https://thousandworlds-explorer.vercel.app)
+### 👉 [thousandworldsexplorer.com](https://thousandworldsexplorer.com)
 
 That's the full experience, right in your browser.
 
