@@ -145,10 +145,13 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
     for (const wd of worlds) {
       if (wd.pressure == null) continue;
       const x = xp(wd.flux), y = yp(wd.pressure), r = dotRadius(wd.radius);
-      const a = focusing ? (wd === sel || wd === hv ? 0.97 : dim) : 0.82;
+      const isFocus = wd === sel || wd === hv;
+      const a = focusing ? (isFocus ? 0.97 : dim) : 0.82;
       c.fillStyle = tColor(wd.tsurf);
-      c.globalAlpha = a * 0.2;                                        // soft luminous halo
-      c.beginPath(); c.arc(x, y, r + 2.2, 0, 6.2832); c.fill();
+      if (isFocus) {                                                 // soft glow ONLY on the spotlighted world (tour / hover / click) — keeps the resting field crisp, not blurry
+        c.globalAlpha = a * 0.25;
+        c.beginPath(); c.arc(x, y, r + 3, 0, 6.2832); c.fill();
+      }
       c.globalAlpha = a;                                             // crisp core
       c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
       pts.push({ x, y, w: wd });
@@ -564,12 +567,6 @@ export default function ThousandWorlds() {
           {meta.gcms.map(([g, ct]) => (
             <button key={g} className={`chip${gcms.has(g) ? ' active' : ''}`} onClick={() => toggleGcm(g)} title={`${GCM_DESC[g] ?? g} · ${ct} simulations`}>{GCM_LABEL[g] ?? g}</button>
           ))}
-        </div>
-        <div className="twmodels">
-          <div><b>ExoPlaSim</b> — a fast, simplified model</div>
-          <div><b>Met Office UM</b> — the UK's main climate model</div>
-          <div><b>ExoCAM</b> — NCAR's exoplanet model (two versions)</div>
-          <div><b>LFRic</b> — the Met Office's next-generation model</div>
         </div>
         <button className="infobtn modelsbtn" onClick={() => setModal('models')}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M3 15h18M9 3v18" /></svg>
