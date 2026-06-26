@@ -610,7 +610,7 @@ export default function ImagineLab() {
       {modal === 'rigor' && sel && est && <RigorModal planet={sel} atm={atm} est={est} onClose={() => setModal(null)} />}
       {modal === 'build' && meta.field && (
         surf
-          ? <BuildAWorld sims={sims} surf={surf} field={meta.field} ranges={meta.ranges} onClose={() => setModal(null)} />
+          ? <BuildAWorld sims={sims} nasa={translatable} surf={surf} field={meta.field} ranges={meta.ranges} onMeet={(w) => { pick(w); setModal(null); }} onClose={() => setModal(null)} />
           : <Modal title="Build a world — predict its climate" onClose={() => setModal(null)}><div className="loading" style={{ padding: 30 }}>Loading the climate field…</div></Modal>
       )}
     </div>

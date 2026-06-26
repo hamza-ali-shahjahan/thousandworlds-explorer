@@ -3,6 +3,14 @@ import Modal from './Modal';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import './BuildAWorld.css';
 import type { TwWorld } from './ThousandWorlds';
+import type { World } from '../types';
+import { n } from '../lib/util';
+
+const EARTH_FLUX = 1361;
+// a little name generator so a built world feels owned the moment you open it
+const NAME_A = ['Verda', 'Aurel', 'Nyx', 'Thala', 'Cinder', 'Pyra', 'Glaci', 'Vesper', 'Cael', 'Mira', 'Orin', 'Zephyr'];
+const NAME_B = ['ia', 'on', 'is', 'os', 'una', 'ara', 'eth', 'or', 'yx', 'a'];
+const randomName = () => NAME_A[Math.floor(Math.random() * NAME_A.length)] + NAME_B[Math.floor(Math.random() * NAME_B.length)];
 
 // ---------------------------------------------------------------------------
 // Phase 2 (interactive emulator demo) — STAND-IN engine.
@@ -95,12 +103,30 @@ const PRESETS: { label: string; p: BuildParams }[] = [
   { label: 'Scorching world', p: { flux: 2400, pressure: 7, co2: 0.01, st_teff: 5777, radius: 1, gravity: 9.81 } },
 ];
 
-export default function BuildAWorld({ sims, surf, field, ranges, onClose }: {
-  sims: TwWorld[]; surf: Uint8Array; field: FieldMeta; ranges: Record<string, [number, number]>; onClose: () => void;
+export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, onClose }: {
+  sims: TwWorld[]; nasa: World[]; surf: Uint8Array; field: FieldMeta; ranges: Record<string, [number, number]>;
+  onMeet: (w: World) => void; onClose: () => void;
 }) {
   const [p, setP] = useState<BuildParams>(PRESETS[0].p);
+  const [name, setName] = useState<string>(randomName);
   const [copied, setCopied] = useState(false);
+  const [shareCard, setShareCard] = useState<string | null>(null);
   const pred = useMemo(() => predictField(p, sims, surf, field, ranges), [p, sims, surf, field, ranges]);
+
+  // the payoff: the real discovered planet most like the world you built (by starlight, size, star type)
+  const cousin = useMemo(() => {
+    const nf = (v: number, [a, b]: [number, number]) => (v - a) / ((b - a) || 1);
+    let best: World | null = null, bd = Infinity;
+    for (const w of nasa) {
+      if (w.insol == null || w.radius == null || w.st_teff == null) continue;
+      const df = (nf(p.flux, ranges.flux) - nf(w.insol * EARTH_FLUX, ranges.flux)) * 1.4;
+      const dr = (nf(p.radius, ranges.radius) - nf(w.radius, ranges.radius)) * 1.0;
+      const dt = (nf(p.st_teff, ranges.st_teff) - nf(w.st_teff, ranges.st_teff)) * 1.0;
+      const d = df * df + dr * dr + dt * dt;
+      if (d < bd) { bd = d; best = w; }
+    }
+    return best;
+  }, [p, nasa, ranges]);
   const set = (k: keyof BuildParams) => (e: React.ChangeEvent<HTMLInputElement>) => setP({ ...p, [k]: Number(e.target.value) });
 
   const sliders: { k: keyof BuildParams; label: string; r: [number, number]; step: number; fmt: (v: number) => string }[] = [
@@ -115,9 +141,9 @@ export default function BuildAWorld({ sims, surf, field, ranges, onClose }: {
 
   const copyWorld = () => {
     if (!pred) return;
-    const txt = `My built world — predicted climate (ThousandWorlds Explorer · Imagine Lab)
+    const txt = `"${name}" — a world I built · ThousandWorlds Explorer (Imagine Lab)
 
-Inputs:
+The recipe:
   Starlight: ${Math.round(p.flux)} W/m²
   Star temperature: ${Math.round(p.st_teff)} K
   Surface pressure: ${p.pressure.toFixed(1)} bar
@@ -126,9 +152,10 @@ Inputs:
   Gravity: ${p.gravity.toFixed(1)} m/s²
 
 Predicted surface: ${Math.round(pred.mean)} K (${kToC(pred.mean)}) — ${pred.reg}${pred.inEnv ? '' : ' [OUTSIDE the simulated grid — extrapolation]'}
-${pred.n} nearest simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K.
+${pred.n} nearest simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K${cousin ? `.\nClosest real world: ${cousin.name} (${n(cousin.radius)}× Earth, ${n(cousin.dist_ly)} ly away)` : ''}.
 
 A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al., CC-BY-4.0) — a simulated analogy, not an observation or a habitability claim.`;
+    setShareCard(txt);
     navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }).catch(() => {});
   };
 
@@ -136,6 +163,11 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
     <Modal title="Build a world — predict its climate" onClose={onClose} wide labelledBy="build-title">
       <div className="bw">
         <p className="bw-lede">Invent a planet — set its star and atmosphere with the sliders, and watch the climate these models predict it would have. A <b>what-if</b>: nothing here is a real planet.</p>
+        <div className="bw-name">
+          <label htmlFor="bw-name-input">Your world</label>
+          <input id="bw-name-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={24} placeholder="Name it…" />
+          <button className="bw-dice" onClick={() => setName(randomName())} title="Random name" aria-label="Random name">🎲</button>
+        </div>
         <div className="bw-controls">
           <div className="bw-presets">
             <span className="bw-presetlabel">Start from</span>
@@ -160,10 +192,23 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
                 <span className="bw-band">{pred.n} nearest simulations span {Math.round(pred.lo)}–{Math.round(pred.hi)} K</span>
               </div>
               {!pred.inEnv && <div className="bw-warn">⚠ Outside the simulated grid ({pred.outOf.join(', ')}) — this is extrapolation, treat the prediction as a rough guess.</div>}
-              <button className="btn bw-copy" onClick={copyWorld} title="Copy this world's inputs + predicted climate to share">
+              {cousin && (
+                <button className="bw-cousin" onClick={() => onMeet(cousin)} title={`Explore ${cousin.name}`}>
+                  <span className="bw-cousin-eyebrow">🌍 The real world most like {name || 'your world'}</span>
+                  <span className="bw-cousin-name">{cousin.name} <span className="bw-cousin-go">go meet it →</span></span>
+                  <span className="bw-cousin-sum">{n(cousin.radius)}× Earth-size{cousin.dist_ly != null ? ` · ${n(cousin.dist_ly)} ly away` : ''}{cousin.insol != null ? ` · ${n(cousin.insol)}× our sunlight` : ''}</span>
+                </button>
+              )}
+              <button className="btn bw-copy" onClick={copyWorld} title="Copy a shareable summary of this world">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{copied ? <path d="M20 6L9 17l-5-5" /> : <><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></>}</svg>
-                {copied ? 'Copied ✓' : 'Copy this world'}
+                {copied ? 'Copied ✓' : shareCard ? 'Copy again' : 'Copy this world'}
               </button>
+              {shareCard && (
+                <div className="bw-sharecard">
+                  <div className="bw-shareok">{copied ? '✓ Copied to your clipboard!' : 'Paste it (⌘V / Ctrl+V) anywhere — a note, a message — to share.'}</div>
+                  <pre>{shareCard}</pre>
+                </div>
+              )}
             </>
           ) : <div className="bw-empty">Move a slider to predict a climate.</div>}
           <p className="bw-honest">

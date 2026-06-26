@@ -5,6 +5,32 @@
 .bw-lede b { color: var(--text); font-weight: 500; }
 .bw-copy { align-self: flex-start; margin-top: 2px; }
 
+/* name your world */
+.bw-name { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+.bw-name label { font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+.bw-name input { flex: 1; min-width: 0; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-weight: 500; padding: 7px 10px; }
+.bw-name input:focus { outline: none; border-color: var(--accent); }
+.bw-dice { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 9px; font-size: 14px; line-height: 1; cursor: pointer; }
+.bw-dice:hover { border-color: var(--accent); }
+
+/* the payoff: meet your world's real cousin */
+.bw-cousin {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; width: 100%; cursor: pointer;
+  padding: 11px 13px; border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(70, 212, 154, 0.13), rgba(111, 168, 255, 0.10));
+  border: 1px solid rgba(70, 212, 154, 0.45); transition: transform 0.14s ease, border-color 0.14s ease;
+}
+.bw-cousin:hover { transform: translateY(-1px); border-color: var(--good); }
+.bw-cousin-eyebrow { font-size: 11.5px; color: var(--text-dim); }
+.bw-cousin-name { font-size: 16px; font-weight: 500; color: var(--text); }
+.bw-cousin-go { font-size: 12.5px; color: var(--good); font-weight: 400; }
+.bw-cousin-sum { font-size: 12px; color: var(--text-faint); }
+
+/* the visible share card */
+.bw-sharecard { border: 1px solid var(--border-soft); border-radius: var(--radius-sm); background: var(--bg); padding: 8px 10px; }
+.bw-shareok { font-size: 12px; color: var(--good); margin-bottom: 6px; }
+.bw-sharecard pre { font-size: 10.5px; line-height: 1.45; color: var(--text-dim); white-space: pre-wrap; margin: 0; font-family: ui-monospace, SFMono-Regular, monospace; max-height: 150px; overflow-y: auto; }
+
 .bw-controls { display: flex; flex-direction: column; gap: 13px; }
 .bw-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-bottom: 2px; }
 .bw-presetlabel { font-size: 12px; color: var(--text-faint); margin-right: 2px; }
