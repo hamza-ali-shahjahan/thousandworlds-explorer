@@ -153,7 +153,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const L10 = Math.log10;
 interface Pin { w: World; est: Estimate; }
 
-function LabField({ sims, pins, built, selName, atm }: { sims: TwWorld[]; pins: Pin[]; built: BuiltWorld[]; selName: string | null; atm: Atmosphere }) {
+function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; pins: Pin[]; built: BuiltWorld[]; selName: string | null; atm: Atmosphere; solo: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
@@ -192,16 +192,19 @@ function LabField({ sims, pins, built, selName, atm }: { sims: TwWorld[]; pins: 
 
     const selPin = pins.find((p) => p.w.name === selName) ?? null;
     const analog = selPin?.est.analog;
+    // the simulated worlds — the "crowd". Hidden in solo mode so your own worlds read clean against the climate backdrop.
     const pts: { x: number; y: number; w: TwWorld }[] = [];
-    for (const s of sims) {
-      if (s.pressure == null) continue;
-      const x = xp(s.flux), y = yp(s.pressure), r = dotRadius(s.radius);
-      const isA = analog?.has(s.sid);
-      c.fillStyle = tColor(s.tsurf);
-      c.globalAlpha = analog && analog.size ? (isA ? 0.95 : 0.1) : 0.8;
-      c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
-      if (isA) { c.globalAlpha = 0.9; c.strokeStyle = '#cdd6f4'; c.lineWidth = 1; c.beginPath(); c.arc(x, y, r + 2, 0, 6.2832); c.stroke(); }
-      pts.push({ x, y, w: s });
+    if (!solo) {
+      for (const s of sims) {
+        if (s.pressure == null) continue;
+        const x = xp(s.flux), y = yp(s.pressure), r = dotRadius(s.radius);
+        const isA = analog?.has(s.sid);
+        c.fillStyle = tColor(s.tsurf);
+        c.globalAlpha = analog && analog.size ? (isA ? 0.95 : 0.1) : 0.8;
+        c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+        if (isA) { c.globalAlpha = 0.9; c.strokeStyle = '#cdd6f4'; c.lineWidth = 1; c.beginPath(); c.arc(x, y, r + 2, 0, 6.2832); c.stroke(); }
+        pts.push({ x, y, w: s });
+      }
     }
     c.globalAlpha = 1; ptsRef.current = pts;
 
@@ -242,7 +245,7 @@ function LabField({ sims, pins, built, selName, atm }: { sims: TwWorld[]; pins: 
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, pins, built, selName, atm]);
+  useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, pins, built, selName, atm, solo]);
 
   function onMove(e: React.MouseEvent) {
     const rect = cvRef.current!.getBoundingClientRect();
@@ -410,6 +413,7 @@ export default function ImagineLab() {
   const [meta, setMeta] = useState<TwMeta | null>(null);
   const [pinned, setPinned] = useState<World[]>([]);
   const [built, setBuilt] = useState<BuiltWorld[]>([]);   // hypothetical worlds the user dropped on the scatter
+  const [soloMine, setSoloMine] = useState(false);        // hide the simulated crowd, leaving your worlds on the bare climate backdrop
   const [selected, setSelected] = useState<World | null>(null);
   const [atm, setAtm] = useState<Atmosphere>({ pressure: 1, co2: 1 });
   const [showCo2, setShowCo2] = useState(false);
@@ -480,6 +484,12 @@ export default function ImagineLab() {
         .lab .legend .sw.diamond { background: transparent; border-radius: 1px; transform: rotate(45deg); box-shadow: 0 0 0 1.5px #cfd8ff inset; }
         .lab .lr-coldnote { font-size: 12px; line-height: 1.55; color: var(--text-faint); margin: -3px 0 2px; }
         .lab .lr-coldnote .linkbtn { color: var(--good); }
+        .lab .lab-solo { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; background: transparent; border: 1px solid var(--border); color: var(--text-faint); font-size: 12px; font-weight: 500; white-space: nowrap; transition: color .14s ease, border-color .14s ease, background .14s ease; }
+        .lab .lab-solo svg { opacity: .85; }
+        .lab .lab-solo:hover { color: var(--text-dim); border-color: #36406a; }
+        .lab .lab-solo.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+        .lab .lab-solo.on svg { opacity: 1; }
+        @media (max-width: 560px) { .lab .lab-solo { margin-left: 0; } }
       `}</style>
       <div className="labbar">
         <div className="labactions">
@@ -521,10 +531,19 @@ export default function ImagineLab() {
               <button className="labpinx" onClick={() => removeBuilt(b.name)} aria-label={`Remove ${b.name}`}>×</button>
             </span>
           ))}
+          <button className={`lab-solo${soloMine ? ' on' : ''}`} onClick={() => setSoloMine((s) => !s)} aria-pressed={soloMine}
+            title={soloMine ? 'Bring back all the simulated worlds' : 'Hide the simulated worlds — see yours alone on the climate backdrop'}>
+            {soloMine ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+            )}
+            {soloMine ? 'Show all worlds' : 'Just my worlds'}
+          </button>
         </div>
       )}
 
-      <LabField sims={sims} pins={pinnedEst} built={built} selName={selected?.name ?? null} atm={atm} />
+      <LabField sims={sims} pins={pinnedEst} built={built} selName={selected?.name ?? null} atm={atm} solo={soloMine && (pinned.length > 0 || built.length > 0)} />
 
       {sel && est && v ? (
         <div className="labresult">
