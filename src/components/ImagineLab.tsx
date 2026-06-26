@@ -151,6 +151,12 @@ const M = { l: 56, r: 16, t: 30, b: 38 };
 const FONT = '11px ui-sans-serif, system-ui, -apple-system, sans-serif';
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const L10 = Math.log10;
+const PULSE_MS = 820;   // a one-shot "you landed here" ring when a world is freshly selected
+function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  c.beginPath(); c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
 interface Pin { w: World; est: Estimate; }
 
 function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; pins: Pin[]; built: BuiltWorld[]; selName: string | null; atm: Atmosphere; solo: boolean }) {
@@ -158,6 +164,9 @@ function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; 
   const cvRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
   const ptsRef = useRef<{ x: number; y: number; w: TwWorld }[]>([]);
+  const pulseRef = useRef<{ name: string; t0: number } | null>(null);   // active arrival pulse
+  const rafRef = useRef<number>(0);
+  const prevSelRef = useRef<string | null>(null);
   const [hover, setHover] = useState<{ w: TwWorld; mx: number; my: number } | null>(null);
 
   const xp = (flux: number) => { const { w } = sizeRef.current; return M.l + (clamp(flux, FX.min, FX.max) - FX.min) / (FX.max - FX.min) * (w - M.l - M.r); };
@@ -215,11 +224,31 @@ function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; 
 
     for (const p of pins) {
       const x = xp(p.est.flux), y = yp(atm.pressure), isSel = p.w.name === selName;
-      c.fillStyle = tColor(p.est.median); c.globalAlpha = 0.97;
-      c.beginPath(); c.arc(x, y, isSel ? 7.5 : 5.5, 0, 6.2832); c.fill(); c.globalAlpha = 1;
-      c.strokeStyle = '#fff'; c.lineWidth = isSel ? 2.5 : 1.5; c.beginPath(); c.arc(x, y, isSel ? 10.5 : 8, 0, 6.2832); c.stroke();
-      c.fillStyle = '#fff'; c.font = `${isSel ? 12 : 11}px ui-sans-serif, system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'bottom';
-      c.fillText(p.w.name, x, y - (isSel ? 13 : 11));
+      const col = tColor(p.est.median);
+      if (isSel) {
+        // the spotlight — a soft climate-coloured glow so the landed world is unmistakable
+        const g = c.createRadialGradient(x, y, 3, x, y, 30);
+        g.addColorStop(0, col + 'aa'); g.addColorStop(0.55, col + '33'); g.addColorStop(1, col + '00');
+        c.fillStyle = g; c.beginPath(); c.arc(x, y, 30, 0, 6.2832); c.fill();
+        // a one-shot expanding ring on arrival
+        const pulse = pulseRef.current;
+        if (pulse && pulse.name === p.w.name) {
+          const k = clamp((performance.now() - pulse.t0) / PULSE_MS, 0, 1);
+          c.globalAlpha = (1 - k) * 0.7; c.strokeStyle = col; c.lineWidth = 2.5;
+          c.beginPath(); c.arc(x, y, 11 + k * 34, 0, 6.2832); c.stroke(); c.globalAlpha = 1;
+        }
+      }
+      // others dim back when one world holds the spotlight, so the landed one dominates
+      c.globalAlpha = isSel ? 1 : (selName ? 0.42 : 0.97);
+      c.fillStyle = col; c.beginPath(); c.arc(x, y, isSel ? 8 : 5.5, 0, 6.2832); c.fill();
+      c.strokeStyle = '#fff'; c.lineWidth = isSel ? 3 : 1.5; c.beginPath(); c.arc(x, y, isSel ? 12 : 8, 0, 6.2832); c.stroke();
+      c.globalAlpha = 1;
+      c.font = `${isSel ? 12.5 : 11}px ui-sans-serif, system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'bottom';
+      if (isSel) {   // a chip behind the name keeps it crisp over the glow
+        const tw = c.measureText(p.w.name).width;
+        c.fillStyle = 'rgba(8,11,22,0.72)'; roundRect(c, x - tw / 2 - 7, y - 16 - 14, tw + 14, 17, 5); c.fill();
+      } else { c.globalAlpha = selName ? 0.55 : 1; }
+      c.fillStyle = '#fff'; c.fillText(p.w.name, x, y - (isSel ? 17 : 11)); c.globalAlpha = 1;
     }
 
     // YOUR built worlds — drawn as labelled diamonds so they stand apart from the round real/simulated dots
@@ -246,6 +275,23 @@ function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, pins, built, selName, atm, solo]);
+  // a one-shot "you landed here" pulse whenever the selected world changes (e.g. arriving via 'go meet it')
+  useEffect(() => {
+    if (selName && selName !== prevSelRef.current) {
+      pulseRef.current = { name: selName, t0: performance.now() };
+      cancelAnimationFrame(rafRef.current);
+      const tick = () => {
+        draw();
+        const p = pulseRef.current;
+        if (p && performance.now() - p.t0 < PULSE_MS) rafRef.current = requestAnimationFrame(tick);
+        else { pulseRef.current = null; draw(); }
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    }
+    prevSelRef.current = selName;
+    return () => cancelAnimationFrame(rafRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selName]);
 
   function onMove(e: React.MouseEvent) {
     const rect = cvRef.current!.getBoundingClientRect();
