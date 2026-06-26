@@ -182,18 +182,19 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        {dataset === 'nasa' && (
-          <button className="navbtn" aria-label="Toggle filters" onClick={() => setNavOpen((o) => !o)}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-          </button>
-        )}
-        <span className="brand"><b>Thousand</b>Worlds</span>
+        <div className="tb-left">
+          {dataset === 'nasa' && (
+            <button className="navbtn" aria-label="Toggle filters" onClick={() => setNavOpen((o) => !o)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+          )}
+          <span className="brand"><b>Thousand</b>Worlds<span className="brand-explorer"> Explorer</span></span>
+        </div>
         <div className="dstoggle" role="tablist" aria-label="Dataset">
           <button className={dataset === 'nasa' ? 'on' : ''} role="tab" aria-selected={dataset === 'nasa'} onClick={() => setDataset('nasa')}>Discovered · NASA</button>
           <button className={dataset === 'tw' ? 'on' : ''} role="tab" aria-selected={dataset === 'tw'} onClick={() => setDataset('tw')}>Simulated · ThousandWorlds</button>
           <button className={dataset === 'lab' ? 'on' : ''} role="tab" aria-selected={dataset === 'lab'} onClick={() => setDataset('lab')}>Imagine · Lab</button>
         </div>
-        <span className="spacer" />
         <span className="src">{dataset === 'nasa' ? `NASA Exoplanet Archive · ${meta.total.toLocaleString()} worlds` : dataset === 'lab' ? 'Imagine Lab · overlay real + simulated · honest hypotheses' : 'ThousandWorlds benchmark · 1,659 climates · CC-BY-4.0'}</span>
       </header>
       {dataset === 'tw' ? <ThousandWorlds /> : dataset === 'lab' ? <ImagineLab /> : (
