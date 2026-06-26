@@ -21,24 +21,24 @@ export interface TwWorld {
   tsurf: number; asr: number; olr: number; cloud: number;
 }
 interface TwMeta {
-  count: number; gcms: [string, number][]; ranges: Record<string, [number, number]>;
+  count: number; full_count?: number; subset?: string; gcms: [string, number][]; ranges: Record<string, [number, number]>;
   source: string; license: string; paper: string; code: string;
 }
 
-// Surface-temperature climate colormap (K) — frozen → temperate → runaway.
+// Surface-temperature climate colormap (K) — frozen → temperate → scorching.
 function tColor(t: number): string {
   if (t < 240) return '#6fa8ff';   // snowball
   if (t < 273) return '#7fcfe6';   // cold
   if (t < 320) return '#46d49a';   // temperate (liquid-water band)
   if (t < 373) return '#f0b24a';   // hot
-  return '#e24b4a';                // runaway / steam
+  return '#e24b4a';                // scorching / steam
 }
 function regime(t: number): string {
   if (t < 240) return 'Snowball';
   if (t < 273) return 'Cold';
   if (t < 320) return 'Temperate';
   if (t < 373) return 'Hot';
-  return 'Runaway';
+  return 'Scorching';
 }
 const kToC = (k: number) => `${Math.round(k - 273.15)} °C`;
 const L10 = Math.log10;
@@ -209,7 +209,7 @@ function ClimateScatter({ worlds, selected, onSelect }: { worlds: TwWorld[]; sel
         <span><span className="sw" style={{ background: '#7fcfe6' }} />Cold</span>
         <span><span className="sw" style={{ background: '#46d49a' }} />Temperate</span>
         <span><span className="sw" style={{ background: '#f0b24a' }} />Hot</span>
-        <span><span className="sw" style={{ background: '#e24b4a' }} />Runaway</span>
+        <span><span className="sw" style={{ background: '#e24b4a' }} />Scorching</span>
         <span><span className="sw ring" />Earth analog</span>
         <span style={{ color: '#69728f' }}>· color = surface temperature · dot size = planet size</span>
       </div>
@@ -262,7 +262,7 @@ function DetailTw({ world, siblings }: { world: TwWorld | null; siblings: TwWorl
 }
 
 const GCM_LABEL: Record<string, string> = { exoplasim: 'ExoPlaSim', um: 'Met Office UM', exocam: 'ExoCAM', 'exocam-pre2022': 'ExoCAM ’21', lfric: 'LFRic' };
-const CLIMATE_VIEWS: [string, string][] = [['all', 'All climates'], ['temperate', 'Temperate'], ['frozen', 'Frozen'], ['hot', 'Hot'], ['runaway', 'Runaway']];
+const CLIMATE_VIEWS: [string, string][] = [['all', 'All climates'], ['temperate', 'Temperate'], ['frozen', 'Frozen'], ['hot', 'Hot'], ['runaway', 'Scorching']];
 const inClimate = (t: number, c: string) =>
   c === 'all' || (c === 'frozen' && t < 240) || (c === 'temperate' && t >= 273 && t <= 320) || (c === 'hot' && t >= 320 && t < 373) || (c === 'runaway' && t >= 373);
 
@@ -287,7 +287,7 @@ function twTourStops(worlds: TwWorld[]): TwStop[] {
   const raw: (TwStop | undefined)[] = [
     snowball && { world: snowball, nick: 'The snowball', title: 'A frozen snowball world', text: `About the size of Earth, but it gets too little starlight to stay warm — so its whole surface freezes over at ${k(snowball)}. Frozen worlds like this show up blue, mostly on the left.` },
     earth && { world: earth, nick: 'The Earth twin', title: 'An Earth twin', text: `The sweet spot: roughly Earth's starlight and a familiar atmosphere give a mild ${k(earth)} climate where liquid water could exist. These are the green dots near the white "Earth" marker.` },
-    runaway && { world: runaway, nick: 'The boiling world', title: 'A runaway, Venus-like world', text: `Too much starlight or greenhouse gas tips this world into a scorching runaway at ${k(runaway)} — any oceans would boil away. These glow red.` },
+    runaway && { world: runaway, nick: 'The boiling world', title: 'A scorching, Venus-like world', text: `Too much starlight or greenhouse gas tips this world into a scorching, Venus-like state at ${k(runaway)} — any oceans would boil away. These glow red.` },
     disagree && { world: disagree, nick: 'The disputed world', title: 'One planet, models disagree', text: `This exact planet was run through several climate models and they don't agree on how hot it gets — see "Same planet, other climate models" on the right. Closing that gap is what the ThousandWorlds benchmark is for.` },
   ];
   return raw.filter((s): s is TwStop => !!s);
@@ -598,6 +598,12 @@ export default function ThousandWorlds() {
               Too little <b style={{ color: '#6fa8ff' }}>starlight</b> (left) or a thin atmosphere freezes a world <b style={{ color: '#6fa8ff' }}>blue</b>; the right balance keeps liquid water <b style={{ color: '#46d49a' }}>green</b>; too much runs it away to a hot, Venus-like <b style={{ color: '#e24b4a' }}>red</b> state. The white dot is an <b>Earth twin</b> for scale. Hover a dot to spotlight it · click to open its world.
             </span>
           </span>
+        </div>
+        <div className="statnote" style={{ fontSize: 11, lineHeight: 1.5, color: '#69728f', margin: '-2px 2px 6px' }}>
+          This is the <b style={{ color: '#8aa0c8' }}>multi-complete</b> subset — {(meta.count).toLocaleString()} simulations with no missing fields — out of the full{' '}
+          <a href="https://github.com/astroautomata/ThousandWorlds/blob/main/dataset/README.md" target="_blank" rel="noopener noreferrer" style={{ color: '#8aa0c8' }}>
+            {(meta.full_count ?? 1760).toLocaleString()}-simulation dataset
+          </a>{' '}(multi-partial).
         </div>
         {tourStop != null && twStops[tourStop] && (
           <Tour

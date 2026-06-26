@@ -105,9 +105,11 @@ meta = {
     'paper': 'https://arxiv.org/abs/2606.18338',
     'code': 'https://github.com/astroautomata/ThousandWorlds',
     'doi': 'https://doi.org/10.57967/hf/8695',
-    'subset': 'complete-obs-only (simulations with no missing fields)',
+    'subset': 'multi-complete (simulations with no missing fields)',
     'note': 'Climate values are area-weighted global means of time-averaged GCM output, derived from the full gridded dataset.',
     'count': len(out),
+    'full_count': 1760,  # multi-partial: the full ThousandWorlds dataset (missing fields as NaNs)
+    'full_subset': 'multi-partial (full dataset; missing fields represented as NaNs)',
     'gcms': sorted(Counter(o['gcm'] for o in out).items(), key=lambda x: -x[1]),
     'ranges': {k: rng(k) for k in ['radius', 'gravity', 'rotation', 'pressure', 'co2', 'ch4', 'flux', 'st_teff', 'tsurf', 'asr', 'olr', 'cloud']},
 }

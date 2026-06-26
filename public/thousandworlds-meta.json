@@ -5,9 +5,11 @@
   "paper": "https://arxiv.org/abs/2606.18338",
   "code": "https://github.com/astroautomata/ThousandWorlds",
   "doi": "https://doi.org/10.57967/hf/8695",
-  "subset": "complete-obs-only (simulations with no missing fields)",
+  "subset": "multi-complete (simulations with no missing fields)",
   "note": "Climate values are area-weighted global means of time-averaged GCM output, derived from the full gridded dataset.",
   "count": 1659,
+  "full_count": 1760,
+  "full_subset": "multi-partial (full dataset; missing fields represented as NaNs)",
   "gcms": [
     [
       "exoplasim",
