@@ -1,0 +1,32 @@
+/* Finding forge — build a claim from menus, test it against the data, share the proof. */
+.ff { display: flex; flex-direction: column; gap: 14px; }
+.ff-lede { font-size: 13px; line-height: 1.55; color: var(--text-dim); margin: 0; }
+.ff-lede b { color: var(--text); font-weight: 500; }
+
+/* the claim sentence, assembled from dropdowns */
+.ff-claim { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 15.5px; line-height: 1.9; color: var(--text-dim);
+  background: var(--bg-elev); border: 1px solid var(--border-soft); border-radius: var(--radius); padding: 12px 14px; }
+.ff-facet { display: inline-flex; align-items: center; gap: 6px; }
+.ff select { background: var(--bg); color: var(--text); font-size: 14.5px; font-weight: 500; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 4px 8px; cursor: pointer; }
+.ff select:focus { outline: none; border-color: var(--accent); }
+.ff-outcome { font-weight: 600 !important; }
+
+.ff-strength { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ff-count { font-size: 13.5px; color: var(--text-dim); }
+.ff-hint { font-size: 12.5px; color: #f0b24a; }
+.cta.ff-test { width: auto; margin-left: auto; }
+
+.ff-result { display: flex; flex-direction: column; gap: 11px; border-top: 1px solid var(--border-soft); padding-top: 13px; }
+.ff-verdict { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border: 1px solid; border-radius: var(--radius); padding: 9px 13px; background: rgba(255, 255, 255, 0.015); }
+.ff-vbadge { font-size: 18px; font-weight: 600; }
+.ff-vblurb { font-size: 13px; color: var(--text-dim); }
+.ff-say { font-size: 14px; line-height: 1.6; color: var(--text-dim); margin: 0; }
+.ff-say b { color: var(--text); font-weight: 500; }
+.ff-targets { font-size: 12.5px; line-height: 1.55; color: var(--text-faint); margin: 0; }
+.ff-targets b { color: var(--text-dim); }
+.ff-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 2px; }
+.cta.ff-share { width: auto; }
+
+.ff-honest { font-size: 11.5px; line-height: 1.5; color: var(--text-faint); margin: 2px 0 0; border-top: 1px solid var(--border-soft); padding-top: 10px; }
+.ff-honest b { color: var(--text-dim); font-weight: 500; }

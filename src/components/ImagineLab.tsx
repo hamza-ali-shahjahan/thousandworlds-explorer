@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
 import BuildAWorld from './BuildAWorld';
+import FindingForge from './FindingForge';
 import type { FieldMeta } from './SurfaceMap';
 import type { World } from '../types';
 import type { TwWorld } from './ThousandWorlds';
@@ -370,75 +371,6 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
   );
 }
 
-// ---------- the rigor gate (unchanged) ----------
-interface Claim { claim: string; mechanism: string; confounder: string; test: string; novelty: string; }
-const EMPTY_CLAIM: Claim = { claim: '', mechanism: '', confounder: '', test: '', novelty: '' };
-const filled = (s: string) => s.trim().length >= 12;
-
-function RigorModal({ planet, atm, est, onClose }: { planet: World; atm: Atmosphere; est: Estimate; onClose: () => void }) {
-  const [c, setC] = useState<Claim>(EMPTY_CLAIM);
-  const [copied, setCopied] = useState(false);
-  const checks: { label: string; ok: boolean; gap: string }[] = [
-    { label: 'Specific target', ok: true, gap: '' },
-    { label: 'Stated assumptions', ok: true, gap: '' },
-    { label: 'Inside simulated range', ok: est.inEnv, gap: `outside the simulated grid (${est.outOf.join(', ')}) — this is extrapolation, flag it` },
-    { label: 'A clear claim', ok: filled(c.claim), gap: 'state the conjecture in one sentence' },
-    { label: 'A physical mechanism', ok: filled(c.mechanism), gap: 'say why it would be true (the physics)' },
-    { label: 'Confounders considered', ok: filled(c.confounder), gap: 'what bias / selection / small-sample effect could explain it away?' },
-    { label: 'A falsifiable test', ok: filled(c.test), gap: 'what observation would confirm OR refute it?' },
-    { label: 'Novelty addressed', ok: filled(c.novelty), gap: 'is this already known? what’s new here?' },
-  ];
-  const score = checks.filter((x) => x.ok).length;
-  const gaps = checks.filter((x) => !x.ok);
-  const card =
-`HYPOTHESIS (draft · rigor ${score}/${checks.length})
-
-Claim: ${c.claim.trim() || '(unstated)'}
-Target: ${planet.name} — ${n(planet.radius)}× Earth radius, ${Math.round(est.flux)} W/m² starlight, ${planet.st_teff} K star
-Assumed atmosphere: ${atm.pressure} bar surface pressure, ${atm.co2}% CO₂
-Simulated-analog climate: median ${Math.round(est.median)} K (${kToC(est.median)}, ${est.reg.toLowerCase()}); ${est.n} nearest analogs span ${Math.round(est.lo)}–${Math.round(est.hi)} K${est.inEnv ? '' : ' — OUTSIDE the simulated grid (extrapolation)'}
-Mechanism: ${c.mechanism.trim() || '(unstated)'}
-Confounders considered: ${c.confounder.trim() || '(unstated)'}
-Falsifiable test: ${c.test.trim() || '(unstated)'}
-Novelty: ${c.novelty.trim() || '(unstated)'}
-
-— Drafted in ThousandWorlds Explorer · Imagine Lab. A simulated analogy, not an observation or a habitability claim.`;
-  const copy = () => { navigator.clipboard?.writeText(card).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }); };
-  const field = (k: keyof Claim, label: string, ph: string) => (
-    <label className="rigorfield"><span>{label}</span>
-      <textarea value={c[k]} onChange={(e) => setC({ ...c, [k]: e.target.value })} placeholder={ph} rows={2} /></label>
-  );
-  return (
-    <Modal title="Forge a hypothesis" onClose={onClose} wide labelledBy="lab-rigor-title">
-      <div className="rigor">
-        <p className="rigorlede">Turn what you’re looking at into a claim a scientist could check. The gate fills in the data; you supply the reasoning. It won’t judge whether you’re <i>right</i> — it checks whether the claim is <b>well-formed and testable</b>.</p>
-        <div className="rigorscore">
-          <div className="rigormeter"><i style={{ width: `${(score / checks.length) * 100}%`, background: score >= checks.length - 1 ? '#46d49a' : score >= 4 ? '#f0b24a' : '#e24b4a' }} /></div>
-          <span><b>{score}</b>/{checks.length} rigor checks met</span>
-        </div>
-        <div className="rigorgrid">
-          {field('claim', 'Your claim (one sentence)', `e.g. ${planet.name} could sustain a temperate surface under a modest CO₂ atmosphere.`)}
-          {field('mechanism', 'Mechanism — why would it be true?', 'the physics: starlight, greenhouse, clouds…')}
-          {field('confounder', 'Confounders — what could explain it away?', 'detection bias, small analog sample, unknown atmosphere…')}
-          {field('test', 'Falsifiable test — what observation settles it?', 'e.g. a JWST transmission spectrum showing/absent CO₂ + H₂O.')}
-          {field('novelty', 'Novelty — is this already known?', 'what’s new vs. the literature?')}
-        </div>
-        {gaps.length > 0 && (
-          <div className="rigorgaps">
-            <div className="section-label" style={{ margin: '0 0 6px' }}>Gaps to close before this is find-worthy</div>
-            <ul>{gaps.map((g) => <li key={g.label}><b>{g.label}:</b> {g.gap}</li>)}</ul>
-          </div>
-        )}
-        <div className="rigorcard">
-          <div className="rigorcardhead"><span className="section-label" style={{ margin: 0 }}>Your hypothesis card</span>
-            <button className="btn primary" onClick={copy}>{copied ? 'Copied ✓' : 'Copy'}</button></div>
-          <pre>{card}</pre>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 // ---------- intro wizard ----------
 function LabWizard({ onClose, onFind }: { onClose: () => void; onFind: () => void }) {
   return (
@@ -470,7 +402,7 @@ export default function ImagineLab() {
   const [atm, setAtm] = useState<Atmosphere>({ pressure: 1, co2: 1 });
   const [showCo2, setShowCo2] = useState(false);
   const [finder, setFinder] = useState<{ expr: string } | null>(null);
-  const [modal, setModal] = useState<'wizard' | 'rigor' | 'build' | null>(null);
+  const [modal, setModal] = useState<'wizard' | 'finding' | 'build' | null>(null);
   const [surf, setSurf] = useState<Uint8Array | null>(null);
   const [autoStarted, setAutoStarted] = useState(false);
 
@@ -589,7 +521,7 @@ export default function ImagineLab() {
               <b className="lr-tval">{atm.co2.toFixed(0)}%</b>
             </div>
           )}
-          <button className="cta lr-find" onClick={() => setModal('rigor')}>Could this be a find? →</button>
+          <button className="cta lr-find" onClick={() => setModal('finding')}>Could this be a find? →</button>
         </div>
       ) : (
         <div className="labresult labempty">
@@ -607,7 +539,7 @@ export default function ImagineLab() {
 
       {finder && <FinderModal planets={translatable} pinned={pinnedNames} onPick={pick} onTogglePin={togglePin} onClose={() => setFinder(null)} initialExpr={finder.expr} />}
       {modal === 'wizard' && <LabWizard onClose={() => setModal(null)} onFind={() => setFinder({ expr: 'esi' })} />}
-      {modal === 'rigor' && sel && est && <RigorModal planet={sel} atm={atm} est={est} onClose={() => setModal(null)} />}
+      {modal === 'finding' && <FindingForge sims={sims} nasa={translatable} onMeet={(w) => { pick(w); setModal(null); }} onClose={() => setModal(null)} />}
       {modal === 'build' && meta.field && (
         surf
           ? <BuildAWorld sims={sims} nasa={translatable} surf={surf} field={meta.field} ranges={meta.ranges} onMeet={(w) => { pick(w); setModal(null); }} onClose={() => setModal(null)} />
