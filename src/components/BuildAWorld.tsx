@@ -40,6 +40,8 @@ const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x
 const pct = (xs: number[], p: number) => { const a = xs.slice().sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.max(0, Math.round(p * (a.length - 1))))]; };
 
 export interface BuildParams { flux: number; pressure: number; co2: number; st_teff: number; radius: number; gravity: number; }
+// a built world the user can drop onto the Lab scatter beside the real planets (flux × pressure, coloured by predicted climate)
+export interface BuiltWorld { name: string; flux: number; pressure: number; mean: number; reg: string; }
 interface Prediction { field: Uint8Array; mean: number; lo: number; hi: number; reg: string; inEnv: boolean; outOf: string[]; n: number; }
 
 // kNN over the sims (same normalised-distance dims/weights as the Lab's translate),
@@ -105,9 +107,9 @@ const PRESETS: { label: string; p: BuildParams }[] = [
   { label: 'Scorching world', p: { flux: 2400, pressure: 7, co2: 0.01, st_teff: 5777, radius: 1, gravity: 9.81 } },
 ];
 
-export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, onClose }: {
+export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, onAddToMap, onClose }: {
   sims: TwWorld[]; nasa: World[]; surf: Uint8Array; field: FieldMeta; ranges: Record<string, [number, number]>;
-  onMeet: (w: World) => void; onClose: () => void;
+  onMeet: (w: World) => void; onAddToMap?: (b: BuiltWorld) => void; onClose: () => void;
 }) {
   const [p, setP] = useState<BuildParams>(PRESETS[0].p);
   const [name, setName] = useState<string>(randomName);
@@ -204,6 +206,12 @@ A nearest-neighbour stand-in over the ThousandWorlds benchmark (Stevenson et al.
                 <span className="bw-band">{pred.n} nearest simulations span {Math.round(pred.lo)}–{Math.round(pred.hi)} K</span>
               </div>
               {!pred.inEnv && <div className="bw-warn">⚠ Outside the simulated grid ({pred.outOf.join(', ')}) — this is extrapolation, treat the prediction as a rough guess.</div>}
+              {onAddToMap && (
+                <button className="bw-addmap" onClick={() => onAddToMap({ name: name.trim() || 'Your world', flux: p.flux, pressure: p.pressure, mean: pred.mean, reg: pred.reg })} title="Drop this world onto the Lab map, beside the real discovered planets">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                  Pin {name.trim() || 'your world'} to the map <span className="bw-addmap-arrow" aria-hidden="true">→</span>
+                </button>
+              )}
               {cousin && (
                 <div className="bw-cousin">
                   <span className="bw-cousin-eyebrow">🌍 The real world most like {name || 'your world'}</span>

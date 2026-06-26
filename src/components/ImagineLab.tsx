@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
-import BuildAWorld from './BuildAWorld';
+import BuildAWorld, { type BuiltWorld } from './BuildAWorld';
 import FindingForge from './FindingForge';
 import type { FieldMeta } from './SurfaceMap';
 import type { World } from '../types';
@@ -153,7 +153,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 const L10 = Math.log10;
 interface Pin { w: World; est: Estimate; }
 
-function LabField({ sims, pins, selName, atm }: { sims: TwWorld[]; pins: Pin[]; selName: string | null; atm: Atmosphere }) {
+function LabField({ sims, pins, built, selName, atm }: { sims: TwWorld[]; pins: Pin[]; built: BuiltWorld[]; selName: string | null; atm: Atmosphere }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
@@ -218,6 +218,17 @@ function LabField({ sims, pins, selName, atm }: { sims: TwWorld[]; pins: Pin[]; 
       c.fillStyle = '#fff'; c.font = `${isSel ? 12 : 11}px ui-sans-serif, system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'bottom';
       c.fillText(p.w.name, x, y - (isSel ? 13 : 11));
     }
+
+    // YOUR built worlds — drawn as labelled diamonds so they stand apart from the round real/simulated dots
+    for (const b of built) {
+      const x = xp(b.flux), y = yp(b.pressure);
+      c.fillStyle = tColor(b.mean); c.globalAlpha = 0.97;
+      c.beginPath(); c.moveTo(x, y - 7.5); c.lineTo(x + 7.5, y); c.lineTo(x, y + 7.5); c.lineTo(x - 7.5, y); c.closePath(); c.fill();
+      c.globalAlpha = 1; c.strokeStyle = '#fff'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(x, y - 11); c.lineTo(x + 11, y); c.lineTo(x, y + 11); c.lineTo(x - 11, y); c.closePath(); c.stroke();
+      c.fillStyle = '#fff'; c.font = '12px ui-sans-serif, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'bottom';
+      c.fillText(`◆ ${b.name}`, x, y - 13);
+    }
   }
 
   useEffect(() => {
@@ -231,7 +242,7 @@ function LabField({ sims, pins, selName, atm }: { sims: TwWorld[]; pins: Pin[]; 
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, pins, selName, atm]);
+  useEffect(() => { draw(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [sims, pins, built, selName, atm]);
 
   function onMove(e: React.MouseEvent) {
     const rect = cvRef.current!.getBoundingClientRect();
@@ -398,6 +409,7 @@ export default function ImagineLab() {
   const [sims, setSims] = useState<TwWorld[] | null>(null);
   const [meta, setMeta] = useState<TwMeta | null>(null);
   const [pinned, setPinned] = useState<World[]>([]);
+  const [built, setBuilt] = useState<BuiltWorld[]>([]);   // hypothetical worlds the user dropped on the scatter
   const [selected, setSelected] = useState<World | null>(null);
   const [atm, setAtm] = useState<Atmosphere>({ pressure: 1, co2: 1 });
   const [showCo2, setShowCo2] = useState(false);
@@ -447,6 +459,9 @@ export default function ImagineLab() {
     return [...ps, w];
   });
   const surprise = () => { const w = translatable[Math.floor(Math.random() * translatable.length)]; if (w) pick(w); };
+  // drop a built world onto the scatter (newest replaces a same-named one); close Build so the map is revealed
+  const addBuilt = (b: BuiltWorld) => { setBuilt((bs) => [...bs.filter((x) => x.name !== b.name), b]); setModal(null); };
+  const removeBuilt = (name: string) => setBuilt((bs) => bs.filter((x) => x.name !== name));
   // Build-a-world (the interactive emulator demo) — lazy-load the surface-field asset on first open.
   const openBuild = () => {
     if (!surf && meta.field) fetch(`/${meta.field.asset}`).then((r) => r.arrayBuffer()).then((b) => setSurf(new Uint8Array(b))).catch(() => {});
@@ -459,6 +474,13 @@ export default function ImagineLab() {
 
   return (
     <div className="main lab">
+      <style>{`
+        .lab .labpin.built { border-color: rgba(70, 212, 154, 0.5); background: rgba(70, 212, 154, 0.08); }
+        .lab .labpin.built > button:first-child { color: var(--good); cursor: default; }
+        .lab .legend .sw.diamond { background: transparent; border-radius: 1px; transform: rotate(45deg); box-shadow: 0 0 0 1.5px #cfd8ff inset; }
+        .lab .lr-coldnote { font-size: 12px; line-height: 1.55; color: var(--text-faint); margin: -3px 0 2px; }
+        .lab .lr-coldnote .linkbtn { color: var(--good); }
+      `}</style>
       <div className="labbar">
         <div className="labactions">
           <button className="cta" onClick={() => setFinder({ expr: 'esi' })}>
@@ -484,7 +506,7 @@ export default function ImagineLab() {
         </div>
       </div>
 
-      {pinned.length > 0 && (
+      {(pinned.length > 0 || built.length > 0) && (
         <div className="labpins">
           <span className="labpinlabel">On the map:</span>
           {pinned.map((w) => (
@@ -493,10 +515,16 @@ export default function ImagineLab() {
               <button className="labpinx" onClick={() => togglePin(w)} aria-label={`Remove ${w.name}`}>×</button>
             </span>
           ))}
+          {built.map((b) => (
+            <span key={`b-${b.name}`} className="labpin built" title="A world you built — hypothetical, not a real discovery">
+              <button>◆ {b.name}</button>
+              <button className="labpinx" onClick={() => removeBuilt(b.name)} aria-label={`Remove ${b.name}`}>×</button>
+            </span>
+          ))}
         </div>
       )}
 
-      <LabField sims={sims} pins={pinnedEst} selName={selected?.name ?? null} atm={atm} />
+      <LabField sims={sims} pins={pinnedEst} built={built} selName={selected?.name ?? null} atm={atm} />
 
       {sel && est && v ? (
         <div className="labresult">
@@ -506,6 +534,9 @@ export default function ImagineLab() {
             {!est.inEnv && <span className="lr-warn">⚠ outside the simulated range — treat as a rough guess</span>}
           </div>
           <p className="lr-say">Under a <b>{atm.pressure.toFixed(1)}-bar atmosphere</b>, the models predict a surface near <b style={{ color: v.color }}>{Math.round(est.median)} K ({kToC(est.median)})</b> — {vsTeq}. <span className="lr-faint">({est.n} nearest simulated analogs span {Math.round(est.lo)}–{Math.round(est.hi)} K.)</span></p>
+          {est.median < 273 && (
+            <p className="lr-coldnote">Even our most famous worlds read cold under these models — that's the honest result, not a glitch. Slide the air thicker above, or <button className="linkbtn" onClick={openBuild}>build a world</button> that lands temperate.</p>
+          )}
           <div className="lr-tweak">
             <span className="lr-tlabel">thinner air</span>
             <input type="range" min={0.1} max={12} step={0.1} value={atm.pressure} onChange={(e) => setAtm({ ...atm, pressure: Number(e.target.value) })} aria-label="assumed surface pressure" />
@@ -534,6 +565,7 @@ export default function ImagineLab() {
         <span><span className="sw" style={{ background: '#46d49a' }} />Temperate</span>
         <span><span className="sw" style={{ background: '#e24b4a' }} />Scorching</span>
         <span><span className="sw ring" />Earth</span>
+        {built.length > 0 && <span><span className="sw diamond" />your built world</span>}
         <span style={{ color: '#69728f' }}>· faint dots = simulated worlds · your planet glows + its closest analogs ring up · {meta.license} · <a href={meta.paper} target="_blank" rel="noreferrer">paper</a></span>
       </div>
 
@@ -542,7 +574,7 @@ export default function ImagineLab() {
       {modal === 'finding' && <FindingForge sims={sims} nasa={translatable} onMeet={(w) => { pick(w); setModal(null); }} onClose={() => setModal(null)} />}
       {modal === 'build' && meta.field && (
         surf
-          ? <BuildAWorld sims={sims} nasa={translatable} surf={surf} field={meta.field} ranges={meta.ranges} onMeet={(w) => { pick(w); setModal(null); }} onClose={() => setModal(null)} />
+          ? <BuildAWorld sims={sims} nasa={translatable} surf={surf} field={meta.field} ranges={meta.ranges} onMeet={(w) => { pick(w); setModal(null); }} onAddToMap={addBuilt} onClose={() => setModal(null)} />
           : <Modal title="Build a world — predict its climate" onClose={() => setModal(null)}><div className="loading" style={{ padding: 30 }}>Loading the climate field…</div></Modal>
       )}
     </div>
