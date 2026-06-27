@@ -68,6 +68,10 @@ returns boolean language sql stable security definer set search_path = public as
 $$;
 
 -- 7) Row-Level Security.
+-- admin_emails is read ONLY by handle_new_user() (security definer, bypasses RLS).
+-- Enable RLS with no policy => the public anon/authenticated API cannot read it,
+-- so the admins' email addresses stay private even though the anon key is public.
+alter table public.admin_emails enable row level security;
 alter table public.profiles  enable row level security;
 alter table public.creations enable row level security;
 alter table public.events    enable row level security;
