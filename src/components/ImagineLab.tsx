@@ -6,6 +6,7 @@ import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import type { World } from '../types';
 import type { TwWorld } from './ThousandWorlds';
 import { n, dotRadius } from '../lib/util';
+import playgroundDiagram from '../../docs/playground.svg';   // the README's "how it works" flow — single source of truth
 
 // ---- shared climate color/regime (matches the Simulated tab) ----
 function tColor(t: number): string {
@@ -489,6 +490,8 @@ function LabWizard({ onClose, onFind }: { onClose: () => void; onFind: () => voi
       <div className="wizard">
         <div className="wiztop"><span className="wizstep" id="lab-wiz-title">Welcome to the Imagine Lab</span></div>
         <div className="wizbody">
+          <img className="wizdiagram" src={playgroundDiagram}
+            alt="How the Imagine Lab works: overlay real NASA detections with simulated ThousandWorlds physics, re-estimate a real planet's climate, surface under-sampled gaps, pass a rigor gate, and articulate a falsifiable hypothesis." />
           <h3>Discover a world in 4 steps</h3>
           <ul className="helplist tight">
             <li><b>1 · Find a world</b> — pick a real discovered planet (browse the famous ones, or tap a wish like “Most Earth-like”).</li>

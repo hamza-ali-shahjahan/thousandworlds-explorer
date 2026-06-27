@@ -236,6 +236,7 @@ body.modal-open { overflow: hidden; }
 .wizdots span.on { background: var(--accent); border-color: var(--accent); }
 .wizdots span.done { background: var(--accent-soft); border-color: var(--accent); }
 .wizbody { min-height: 248px; }
+.wizdiagram { display: block; width: 100%; max-width: 440px; height: auto; margin: 0 auto 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-soft); }
 .wizbody h3 { font-size: 16px; color: var(--text); margin: 0 0 9px; font-weight: 500; }
 .wizbody p { font-size: 13.5px; line-height: 1.62; color: var(--text-dim); margin: 0 0 9px; }
 .wizbody p b { color: var(--text); font-weight: 500; }
