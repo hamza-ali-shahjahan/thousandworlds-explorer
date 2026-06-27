@@ -1,0 +1,92 @@
+{
+  "subset": "multi-complete",
+  "note": "Per-input preprocessing for the surface-temperature emulator. Apply the strategy transform (Z-scaling=identity; log_Z=log(x); arcsinh_Z=arcsinh(x/s)) then standardize (x-mean)/std. Order matches the ONNX feature order before the 5-way GCM one-hot.",
+  "input_names": [
+    "T_star",
+    "F_star",
+    "radius",
+    "gravity",
+    "P_rot",
+    "P0",
+    "CO2",
+    "CH4"
+  ],
+  "inputs": [
+    {
+      "name": "T_star",
+      "strategy": "Z-scaling",
+      "kwargs": {},
+      "mean": 3949.495361328125,
+      "std": 1302.329833984375,
+      "unit": "K"
+    },
+    {
+      "name": "F_star",
+      "strategy": "Z-scaling",
+      "kwargs": {},
+      "mean": 1323.3492431640625,
+      "std": 599.5604248046875,
+      "unit": "W/m^2"
+    },
+    {
+      "name": "radius",
+      "strategy": "Z-scaling",
+      "kwargs": {},
+      "mean": 6319328.5,
+      "std": 817592.375,
+      "unit": "m"
+    },
+    {
+      "name": "gravity",
+      "strategy": "Z-scaling",
+      "kwargs": {},
+      "mean": 9.646529197692871,
+      "std": 1.300498604774475,
+      "unit": "m/s^2"
+    },
+    {
+      "name": "P_rot",
+      "strategy": "log_Z-scaling",
+      "kwargs": {},
+      "mean": 2.6673521995544434,
+      "std": 0.8358513712882996,
+      "unit": "days"
+    },
+    {
+      "name": "P0",
+      "strategy": "log_Z-scaling",
+      "kwargs": {},
+      "mean": 11.883866310119629,
+      "std": 1.160101294517517,
+      "unit": "Pa"
+    },
+    {
+      "name": "CO2",
+      "strategy": "arcsinh_Z-scaling",
+      "kwargs": {
+        "s": 1e-06
+      },
+      "mean": 5.569713115692139,
+      "std": 3.34804630279541,
+      "unit": "mol/mol"
+    },
+    {
+      "name": "CH4",
+      "strategy": "arcsinh_Z-scaling",
+      "kwargs": {
+        "s": 1e-08
+      },
+      "mean": 0.9265427589416504,
+      "std": 3.1482772827148438,
+      "unit": "mol/mol"
+    }
+  ],
+  "n_sim_types": 5,
+  "gcm_labels": [
+    "exocam",
+    "exocam-pre2022",
+    "exoplasim",
+    "lfric",
+    "um"
+  ]
+}

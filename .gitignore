@@ -5,6 +5,15 @@ dist-ssr
 .DS_Store
 .vite
 
+# Env / secrets — never commit real keys (.env.example IS committed)
+.env
+.env.*
+!.env.example
+
+# Private admin seeds — real collaborator emails stay out of this public repo
+*.local.sql
+supabase/admins.local.sql
+
 # build artifacts
 *.tsbuildinfo
 vite.config.js

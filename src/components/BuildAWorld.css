@@ -4,6 +4,9 @@
 .bw-lede { grid-column: 1 / -1; font-size: 13px; line-height: 1.55; color: var(--text-dim); margin: 0; }
 .bw-lede b { color: var(--text); font-weight: 500; }
 .bw-copy { align-self: flex-start; margin-top: 2px; }
+.bw-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; align-self: flex-start; margin-top: 2px; }
+.bw-actions .bw-copy { margin-top: 0; }
+.bw-actions .ssb { margin-top: 0; }
 
 /* name your world */
 .bw-name { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
@@ -68,6 +71,7 @@
 
 .bw-slider { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; }
 .bw-sl-label { font-size: 12.5px; color: var(--text-dim); grid-column: 1 / -1; }
+.bw-sl-sparse { color: var(--text-faint); font-style: italic; }
 .bw-slider input[type="range"] { width: 100%; accent-color: var(--accent); }
 .bw-sl-val { font-size: 12.5px; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
@@ -77,6 +81,10 @@
 .bw-badge { font-size: 12px; font-weight: 500; padding: 2px 9px; border: 1px solid; border-radius: 999px; }
 .bw-temp { font-size: 14px; color: var(--text-dim); }
 .bw-band { font-size: 12px; color: var(--text-faint); }
+/* honest engine tag: the real PCA-GBT emulator vs the kNN stand-in */
+.bw-source { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; letter-spacing: 0.01em; white-space: nowrap; }
+.bw-source.is-model { color: var(--good); background: rgba(70, 212, 154, 0.12); border: 1px solid rgba(70, 212, 154, 0.4); }
+.bw-source.is-knn { color: var(--text-faint); background: var(--bg-elev); border: 1px solid var(--border-soft); }
 .bw-warn { font-size: 12px; line-height: 1.5; color: #f0b24a; background: rgba(240, 178, 74, 0.1); border: 1px solid rgba(240, 178, 74, 0.3); border-radius: var(--radius-sm); padding: 8px 10px; }
 .bw-empty { font-size: 13px; color: var(--text-faint); padding: 30px; text-align: center; }
 .bw-honest { font-size: 11.5px; line-height: 1.55; color: var(--text-faint); margin: 2px 0 0; border-top: 1px solid var(--border-soft); padding-top: 10px; }

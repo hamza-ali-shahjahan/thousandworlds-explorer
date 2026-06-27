@@ -1,0 +1,66 @@
+{
+  "subset": "multi-complete",
+  "latent_dim": 16,
+  "d_in": 13,
+  "n_sim_types": 5,
+  "gridcells": 2048,
+  "grid": [
+    32,
+    64
+  ],
+  "design_P": 9,
+  "default_gcm_index": 4,
+  "default_gcm_label": "um",
+  "gcm_labels": [
+    "exocam",
+    "exocam-pre2022",
+    "exoplasim",
+    "lfric",
+    "um"
+  ],
+  "surface_temperature_idx": 0,
+  "A_coeffs": 484,
+  "spectral_sigma": 208.74742126464844,
+  "design_cfg": {
+    "intercept": true,
+    "inputs": true,
+    "sim_onehot": false
+  },
+  "gbt_max_iter": 250,
+  "gbt_max_leaf_nodes": 31,
+  "ppca_iters": 30,
+  "onnx_feature_order": [
+    "T_star",
+    "F_star",
+    "radius",
+    "gravity",
+    "P_rot",
+    "P0",
+    "CO2",
+    "CH4",
+    "gcm_onehot[0]=exocam",
+    "gcm_onehot[1]=exocam-pre2022",
+    "gcm_onehot[2]=exoplasim",
+    "gcm_onehot[3]=lfric",
+    "gcm_onehot[4]=um"
+  ],
+  "design_row_order": [
+    "1(intercept)",
+    "T_star",
+    "F_star",
+    "radius",
+    "gravity",
+    "P_rot",
+    "P0",
+    "CO2",
+    "CH4"
+  ],
+  "decode": "grid(2048) = z @ G_lat.T + h @ G_trend.T + g_bias; reshape(32,64); Kelvin",
+  "artifacts": {
+    "onnx": "pca_gbt_surface_temperature.onnx",
+    "G_lat": "collapsed_G_lat.npy",
+    "G_trend": "collapsed_G_trend.npy",
+    "g_bias": "collapsed_g_bias.npy",
+    "input_transform": "input_transform_surface_temperature.json"
+  }
+}

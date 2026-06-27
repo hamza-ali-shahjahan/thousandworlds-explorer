@@ -26,6 +26,7 @@
 .ff-targets { font-size: 12.5px; line-height: 1.55; color: var(--text-faint); margin: 0; }
 .ff-targets b { color: var(--text-dim); }
 .ff-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: 2px; }
+.ff-actions .ssb { margin-top: 0; }
 .cta.ff-share { width: auto; }
 
 .ff-honest { font-size: 11.5px; line-height: 1.5; color: var(--text-faint); margin: 2px 0 0; border-top: 1px solid var(--border-soft); padding-top: 10px; }

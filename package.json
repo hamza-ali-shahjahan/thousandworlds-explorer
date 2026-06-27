@@ -8,9 +8,12 @@
     "data": "node scripts/build-data.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "provision:supabase": "node scripts/provision-supabase.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "onnxruntime-web": "^1.27.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -19,6 +22,7 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vite-plugin-static-copy": "^2.3.2"
   }
 }

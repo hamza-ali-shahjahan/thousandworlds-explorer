@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from './Modal';
 import BuildAWorld, { type BuiltWorld } from './BuildAWorld';
 import FindingForge from './FindingForge';
-import type { FieldMeta } from './SurfaceMap';
+import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import type { World } from '../types';
 import type { TwWorld } from './ThousandWorlds';
 import { n, dotRadius } from '../lib/util';
@@ -159,11 +159,15 @@ function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number,
 }
 interface Pin { w: World; est: Estimate; }
 
-function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; pins: Pin[]; built: BuiltWorld[]; selName: string | null; atm: Atmosphere; solo: boolean }) {
+function LabField({ sims, pins, built, selName, atm, solo, onPickSim, onPickPin }: {
+  sims: TwWorld[]; pins: Pin[]; built: BuiltWorld[]; selName: string | null; atm: Atmosphere; solo: boolean;
+  onPickSim: (w: TwWorld, row: number) => void; onPickPin: (w: World) => void;
+}) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0, dpr: 1 });
-  const ptsRef = useRef<{ x: number; y: number; w: TwWorld }[]>([]);
+  const ptsRef = useRef<{ x: number; y: number; w: TwWorld; i: number }[]>([]);
+  const pinPtsRef = useRef<{ x: number; y: number; w: World }[]>([]);
   const pulseRef = useRef<{ name: string; t0: number } | null>(null);   // active arrival pulse
   const rafRef = useRef<number>(0);
   const prevSelRef = useRef<string | null>(null);
@@ -202,17 +206,19 @@ function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; 
     const selPin = pins.find((p) => p.w.name === selName) ?? null;
     const analog = selPin?.est.analog;
     // the simulated worlds — the "crowd". Hidden in solo mode so your own worlds read clean against the climate backdrop.
-    const pts: { x: number; y: number; w: TwWorld }[] = [];
+    const pts: { x: number; y: number; w: TwWorld; i: number }[] = [];
     if (!solo) {
-      for (const s of sims) {
+      for (let i = 0; i < sims.length; i++) {
+        const s = sims[i];
         if (s.pressure == null) continue;
         const x = xp(s.flux), y = yp(s.pressure), r = dotRadius(s.radius);
         const isA = analog?.has(s.sid);
         c.fillStyle = tColor(s.tsurf);
-        c.globalAlpha = analog && analog.size ? (isA ? 0.95 : 0.1) : 0.8;
+        // calmer crowd — the simulations sit back as a quiet field so Earth + your worlds pop
+        c.globalAlpha = analog && analog.size ? (isA ? 0.95 : 0.07) : 0.5;
         c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
         if (isA) { c.globalAlpha = 0.9; c.strokeStyle = '#cdd6f4'; c.lineWidth = 1; c.beginPath(); c.arc(x, y, r + 2, 0, 6.2832); c.stroke(); }
-        pts.push({ x, y, w: s });
+        pts.push({ x, y, w: s, i });
       }
     }
     c.globalAlpha = 1; ptsRef.current = pts;
@@ -250,6 +256,7 @@ function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; 
       } else { c.globalAlpha = selName ? 0.55 : 1; }
       c.fillStyle = '#fff'; c.fillText(p.w.name, x, y - (isSel ? 17 : 11)); c.globalAlpha = 1;
     }
+    pinPtsRef.current = pins.map((p) => ({ x: xp(p.est.flux), y: yp(atm.pressure), w: p.w }));
 
     // YOUR built worlds — drawn as labelled diamonds so they stand apart from the round real/simulated dots
     for (const b of built) {
@@ -298,16 +305,32 @@ function LabField({ sims, pins, built, selName, atm, solo }: { sims: TwWorld[]; 
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
     let best: TwWorld | null = null, bd = 200;
     for (const p of ptsRef.current) { const d = (p.x - mx) ** 2 + (p.y - my) ** 2; if (d < bd) { bd = d; best = p.w; } }
+    // also light the cursor over your pinned worlds (bigger targets)
+    let nearPin = false;
+    for (const p of pinPtsRef.current) { if ((p.x - mx) ** 2 + (p.y - my) ** 2 < 240) { nearPin = true; break; } }
     setHover(best ? { w: best, mx, my } : null);
+    if (cvRef.current) cvRef.current.style.cursor = best || nearPin ? 'pointer' : 'default';
+  }
+
+  function onClick(e: React.MouseEvent) {
+    const rect = cvRef.current!.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    // your pinned worlds win ties (they're the heroes, drawn on top)
+    let bestPin: World | null = null, bp = 240;
+    for (const p of pinPtsRef.current) { const d = (p.x - mx) ** 2 + (p.y - my) ** 2; if (d < bp) { bp = d; bestPin = p.w; } }
+    if (bestPin) { onPickPin(bestPin); return; }
+    let best: { w: TwWorld; i: number } | null = null, bd = 200;
+    for (const p of ptsRef.current) { const d = (p.x - mx) ** 2 + (p.y - my) ** 2; if (d < bd) { bd = d; best = { w: p.w, i: p.i }; } }
+    if (best) onPickSim(best.w, best.i);
   }
 
   return (
     <div className="mapwrap" ref={wrapRef}>
-      <canvas ref={cvRef} style={{ cursor: hover ? 'crosshair' : 'default' }} onMouseMove={onMove} onMouseLeave={() => setHover(null)} />
+      <canvas ref={cvRef} onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={onClick} />
       {hover && (
         <div className="tooltip" style={{ left: hover.mx > sizeRef.current.w - 220 ? hover.mx - 210 : hover.mx + 14, top: Math.max(6, hover.my - 10) }}>
           <div className="tn">Simulated world · {hover.w.gcm}</div>
-          <div className="td">surface {Math.round(hover.w.tsurf)} K ({kToC(hover.w.tsurf)}) · {regime(hover.w.tsurf)}<br />{hover.w.flux} W/m² · {hover.w.pressure} bar</div>
+          <div className="td">surface {Math.round(hover.w.tsurf)} K ({kToC(hover.w.tsurf)}) · {regime(hover.w.tsurf)}<br />{hover.w.flux} W/m² · {hover.w.pressure} bar · <b style={{ color: '#cdd6f4' }}>click to open</b></div>
         </div>
       )}
     </div>
@@ -336,12 +359,16 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
   }, [planets, sortFn]);
   const browsing = !q.trim() && filter === 'all';
   // how many real planets each filter surfaces — shown on the chips so a newbie sees what's available
-  const filterCount = useMemo(() => ({
-    all: planets.length,
-    near: planets.filter((w) => w.dist_ly != null && w.dist_ly < 50).length,
-    earth: planets.filter((w) => w.radius != null && w.radius <= 1.6).length,
-    temp: planets.filter((w) => w.teq != null && w.teq >= 250 && w.teq <= 330).length,
-  } as Record<string, number>), [planets]);
+  const filterCount = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    const base = term ? planets.filter((w) => `${w.name} ${w.host ?? ''}`.toLowerCase().includes(term)) : planets;
+    return {
+      all: base.length,
+      near: base.filter((w) => w.dist_ly != null && w.dist_ly < 50).length,
+      earth: base.filter((w) => w.radius != null && w.radius <= 1.6).length,
+      temp: base.filter((w) => w.teq != null && w.teq >= 250 && w.teq <= 330).length,
+    } as Record<string, number>;
+  }, [planets, q]);
   const { rows, total } = useMemo(() => {
     let list = planets;
     const term = q.trim().toLowerCase();
@@ -356,6 +383,21 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
 
   const applyAdv = () => { const src = eqSrc.trim(); if (!src) return; try { const f = compile(src); f(planetCtx(planets[0])); setSortExpr(src); setEqErr(''); } catch (e) { setEqErr(e instanceof Error ? e.message : 'could not read that'); } };
   const wishLabel = WISHES.find((wi) => wi.expr === sortExpr)?.label;
+  // Does the active narrow hide most of what the rank would surface? If so the
+  // rank looks "inert" — flag it and offer to widen. (Heuristic only; no filtering.)
+  const conflict = useMemo(() => {
+    if (filter === 'all') return null;
+    const pred = (w: World) =>
+      filter === 'near' ? (w.dist_ly != null && w.dist_ly < 50)
+      : filter === 'earth' ? (w.radius != null && w.radius <= 1.6)
+      : (w.teq != null && w.teq >= 250 && w.teq <= 330);
+    const topByRank = planets
+      .map((w) => ({ w, v: (() => { try { const val = sortFn(planetCtx(w)); return isFinite(val) ? val : -Infinity; } catch { return -Infinity; } })() }))
+      .sort((a, b) => b.v - a.v).slice(0, 40).map((x) => x.w);
+    const survivors = topByRank.filter(pred).length;
+    if (survivors >= 16) return null;
+    return { narrow: FILTERS.find(([k]) => k === filter)?.[1] ?? '', rank: wishLabel ?? 'your formula' };
+  }, [planets, filter, sortFn, wishLabel]);
 
   const Row = ({ w }: { w: World }) => {
     const on = pinned.has(w.name);
@@ -386,6 +428,9 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
           .finder .finderqual { font-size: 12px; color: var(--text-faint); align-self: center; margin-right: 2px; }
           .finder .finderresult { font-size: 12px; color: var(--text-faint); margin: 2px 0 -2px; }
           .finder .finderresult b { color: var(--text-dim); font-weight: 500; }
+          .finder .finderconflict { font-size: 12px; color: #f0b24a; background: rgba(240,178,74,0.1); border: 1px solid rgba(240,178,74,0.32); border-radius: var(--radius-sm); padding: 7px 10px; margin: 4px 0 0; }
+          .finder .finderconflict b { color: #f7c873; font-weight: 600; }
+          .finder .finderwiden { background: none; border: 0; color: #f0b24a; font-weight: 600; cursor: pointer; text-decoration: underline; font-size: 12px; padding: 0; }
         `}</style>
         <input className="search" placeholder="Search by name…  (e.g. TRAPPIST, Kepler, Proxima)" value={q} onChange={(e) => setQ(e.target.value)} autoFocus />
         <div className="finderfilters">
@@ -412,7 +457,13 @@ function FinderModal({ planets, pinned, onPick, onTogglePin, onClose, initialExp
           </div>
         )}
 
-        <div className="finderresult">Showing the top <b>{Math.min(60, total).toLocaleString()}</b> of {total.toLocaleString()} · ranked by “{wishLabel ?? 'your formula'}”</div>
+        {conflict && (
+          <div className="finderconflict">
+            Heads-up: <b>“{conflict.narrow}”</b> hides most of the worlds <b>“{conflict.rank}”</b> would surface.{' '}
+            <button className="finderwiden" onClick={() => setFilter('all')}>Show all worlds →</button>
+          </div>
+        )}
+        <div className="finderresult">Showing the top <b>{Math.min(60, total).toLocaleString()}</b> of {total.toLocaleString()} {filter === 'all' ? 'worlds' : `${FILTERS.find(([k]) => k === filter)?.[1]} worlds`} · ranked by “{wishLabel ?? 'your formula'}”</div>
         <div className="finderlist">
           {browsing && curatedSet.length > 0 && (
             <>
@@ -453,6 +504,34 @@ function LabWizard({ onClose, onFind }: { onClose: () => void; onFind: () => voi
   );
 }
 
+// ---------- docked detail card for a clicked simulated world ----------
+function LabWorldCard({ sim, row, surf, field, onClose }: {
+  sim: TwWorld; row: number; surf: Uint8Array | null; field: FieldMeta | null; onClose: () => void;
+}) {
+  const reg = regime(sim.tsurf);
+  const col = tColor(sim.tsurf);
+  return (
+    <aside className="labcard">
+      <button className="labcard-x" onClick={onClose} aria-label="Close">×</button>
+      <div className="labcard-eyebrow">Simulated world · {sim.gcm}</div>
+      <div className="labcard-title"><span className="labcard-dot" style={{ background: col }} />{reg} climate</div>
+      <div className="labcard-temp" style={{ color: col }}>{Math.round(sim.tsurf)} K <span>({kToC(sim.tsurf)})</span></div>
+      <p className="labcard-say">
+        A real ThousandWorlds simulation: <b>{Math.round(sim.flux)} W/m²</b> of starlight under <b>{sim.pressure} bar</b> of air{sim.co2 ? <>, <b>{sim.co2}% CO₂</b></> : null} settles at a global-mean <b>{Math.round(sim.tsurf)} K</b> — a {reg.toLowerCase()} world.
+      </p>
+      {field && surf ? (
+        <div className="labcard-map">
+          <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="thumb" />
+          <span className="labcard-maphint">Its surface temperature — hottest toward its star, coldest on the far side.</span>
+        </div>
+      ) : field ? (
+        <div className="labcard-loading">Loading its surface map…</div>
+      ) : null}
+      <div className="labcard-foot">A simulated analogy — not an observation or a habitability claim.</div>
+    </aside>
+  );
+}
+
 export default function ImagineLab() {
   const [nasa, setNasa] = useState<World[] | null>(null);
   const [sims, setSims] = useState<TwWorld[] | null>(null);
@@ -466,6 +545,7 @@ export default function ImagineLab() {
   const [finder, setFinder] = useState<{ expr: string } | null>(null);
   const [modal, setModal] = useState<'wizard' | 'finding' | 'build' | null>(null);
   const [surf, setSurf] = useState<Uint8Array | null>(null);
+  const [simDetail, setSimDetail] = useState<{ sim: TwWorld; row: number } | null>(null);
   const [autoStarted, setAutoStarted] = useState(false);
 
   useEffect(() => {
@@ -512,11 +592,11 @@ export default function ImagineLab() {
   // drop a built world onto the scatter (newest replaces a same-named one); close Build so the map is revealed
   const addBuilt = (b: BuiltWorld) => { setBuilt((bs) => [...bs.filter((x) => x.name !== b.name), b]); setModal(null); };
   const removeBuilt = (name: string) => setBuilt((bs) => bs.filter((x) => x.name !== name));
-  // Build-a-world (the interactive emulator demo) — lazy-load the surface-field asset on first open.
-  const openBuild = () => {
-    if (!surf && meta.field) fetch(`/${meta.field.asset}`).then((r) => r.arrayBuffer()).then((b) => setSurf(new Uint8Array(b))).catch(() => {});
-    setModal('build');
-  };
+  // The surface-field asset (~3.4 MB) is lazy-loaded on first need — opening Build, or clicking a world to inspect.
+  const ensureSurf = () => { if (!surf && meta.field) fetch(`/${meta.field.asset}`).then((r) => r.arrayBuffer()).then((b) => setSurf(new Uint8Array(b))).catch(() => {}); };
+  const openBuild = () => { ensureSurf(); setModal('build'); };
+  const pickSim = (w: TwWorld, row: number) => { ensureSurf(); setSimDetail({ sim: w, row }); };
+  const pickPin = (w: World) => { setSimDetail(null); setSelected(w); };
   const sel = selected;
   const v = est ? verdict(est.median) : null;
   const dteq = sel && est && sel.teq != null ? Math.round(est.median - sel.teq) : null;
@@ -536,6 +616,23 @@ export default function ImagineLab() {
         .lab .lab-solo.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
         .lab .lab-solo.on svg { opacity: 1; }
         @media (max-width: 560px) { .lab .lab-solo { margin-left: 0; } }
+        .lab .lab-stage { display: flex; gap: 14px; align-items: stretch; }
+        .lab .lab-stage .mapwrap { flex: 1; min-width: 0; min-height: 0; margin: 0; }
+        .lab .labcard { position: relative; width: 330px; flex: none; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; overflow-y: auto; max-height: 100%; }
+        .lab .labcard-x { position: absolute; right: 10px; top: 8px; background: none; border: 0; color: var(--text-faint); font-size: 22px; line-height: 1; cursor: pointer; }
+        .lab .labcard-eyebrow { font-size: 11.5px; color: var(--text-faint); }
+        .lab .labcard-title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; color: var(--text); margin-top: 3px; }
+        .lab .labcard-dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+        .lab .labcard-temp { font-size: 26px; font-weight: 700; margin: 8px 0 2px; }
+        .lab .labcard-temp span { font-size: 15px; font-weight: 500; color: var(--text-dim); }
+        .lab .labcard-say { font-size: 12.5px; line-height: 1.55; color: var(--text-dim); margin: 8px 0 12px; }
+        .lab .labcard-say b { color: var(--text); font-weight: 500; }
+        .lab .labcard-map { display: flex; flex-direction: column; gap: 6px; }
+        .lab .labcard-map .surfacemap { width: 100%; height: auto; border-radius: var(--radius-sm); border: 1px solid var(--border-soft); }
+        .lab .labcard-maphint { font-size: 11px; color: var(--text-faint); line-height: 1.45; }
+        .lab .labcard-loading { font-size: 12px; color: var(--text-faint); padding: 20px 0; text-align: center; }
+        .lab .labcard-foot { font-size: 11px; color: var(--text-faint); margin-top: 14px; border-top: 1px solid var(--border-soft); padding-top: 10px; }
+        @media (max-width: 760px) { .lab .lab-stage { flex-direction: column; } .lab .labcard { width: auto; } }
       `}</style>
       <div className="labbar">
         <div className="labactions">
@@ -559,6 +656,17 @@ export default function ImagineLab() {
         <div className="labwishes">
           <span className="labwishlabel">Show me…</span>
           {WISHES.map((wi) => <button key={wi.expr} className="chip" onClick={() => setFinder({ expr: wi.expr })}>{wi.label}</button>)}
+          {(pinned.length > 0 || built.length > 0) && (
+            <button className={`lab-solo${soloMine ? ' on' : ''}`} onClick={() => setSoloMine((s) => !s)} aria-pressed={soloMine}
+              title={soloMine ? 'Bring back all the simulated worlds' : 'Hide the simulated worlds — see yours alone on the climate backdrop'}>
+              {soloMine ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+              )}
+              {soloMine ? 'Show all worlds' : 'Just my worlds'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -577,19 +685,13 @@ export default function ImagineLab() {
               <button className="labpinx" onClick={() => removeBuilt(b.name)} aria-label={`Remove ${b.name}`}>×</button>
             </span>
           ))}
-          <button className={`lab-solo${soloMine ? ' on' : ''}`} onClick={() => setSoloMine((s) => !s)} aria-pressed={soloMine}
-            title={soloMine ? 'Bring back all the simulated worlds' : 'Hide the simulated worlds — see yours alone on the climate backdrop'}>
-            {soloMine ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
-            )}
-            {soloMine ? 'Show all worlds' : 'Just my worlds'}
-          </button>
         </div>
       )}
 
-      <LabField sims={sims} pins={pinnedEst} built={built} selName={selected?.name ?? null} atm={atm} solo={soloMine && (pinned.length > 0 || built.length > 0)} />
+      <div className="lab-stage">
+        <LabField sims={sims} pins={pinnedEst} built={built} selName={selected?.name ?? null} atm={atm} solo={soloMine && (pinned.length > 0 || built.length > 0)} onPickSim={pickSim} onPickPin={pickPin} />
+        {simDetail && <LabWorldCard sim={simDetail.sim} row={simDetail.row} surf={surf} field={meta.field ?? null} onClose={() => setSimDetail(null)} />}
+      </div>
 
       {sel && est && v ? (
         <div className="labresult">
@@ -631,7 +733,7 @@ export default function ImagineLab() {
         <span><span className="sw" style={{ background: '#e24b4a' }} />Scorching</span>
         <span><span className="sw ring" />Earth</span>
         {built.length > 0 && <span><span className="sw diamond" />your built world</span>}
-        <span style={{ color: '#69728f' }}>· faint dots = simulated worlds · your planet glows + its closest analogs ring up · {meta.license} · <a href={meta.paper} target="_blank" rel="noreferrer">paper</a></span>
+        <span style={{ color: '#69728f' }}>· faint dots = simulated worlds (tap any to open) · your planet glows + its closest analogs ring up · {meta.license} · <a href={meta.paper} target="_blank" rel="noreferrer">paper</a></span>
       </div>
 
       {finder && <FinderModal planets={translatable} pinned={pinnedNames} onPick={pick} onTogglePin={togglePin} onClose={() => setFinder(null)} initialExpr={finder.expr} />}
