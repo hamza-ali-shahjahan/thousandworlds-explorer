@@ -1,0 +1,17 @@
+<svg viewBox="0 0 240 240" width="240" height="240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ThousandWorlds Explorer logo — lens over scattered worlds">
+  <rect width="240" height="240" rx="52" fill="#0b0f1a"/>
+  <line x1="146" y1="146" x2="198" y2="198" stroke="#c7d4ee" stroke-width="22" stroke-linecap="round"/>
+  <clipPath id="lens"><circle cx="103" cy="103" r="60"/></clipPath>
+  <g clip-path="url(#lens)">
+    <circle cx="103" cy="103" r="60" fill="#0d1322"/>
+    <circle cx="74" cy="80" r="1.7" fill="#7c88ad"/>
+    <circle cx="128" cy="68" r="1.5" fill="#7c88ad"/>
+    <circle cx="86" cy="138" r="1.6" fill="#7c88ad"/>
+    <circle cx="96" cy="100" r="20" fill="#fbe7c4"/>
+    <circle cx="138" cy="92" r="11" fill="#6fa8ff"/>
+    <circle cx="74" cy="128" r="8" fill="#46d49a"/>
+    <circle cx="124" cy="132" r="7" fill="#f0b24a"/>
+    <circle cx="132" cy="115" r="4.5" fill="#e2685a"/>
+  </g>
+  <circle cx="103" cy="103" r="60" fill="none" stroke="#c7d4ee" stroke-width="9"/>
+</svg>
