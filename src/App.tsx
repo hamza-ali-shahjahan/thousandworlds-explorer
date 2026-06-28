@@ -11,6 +11,7 @@ import DetailPanel from './components/DetailPanel';
 import StatBar, { type View } from './components/StatBar';
 import Tour from './components/Tour';
 import AuthMenu from './components/AuthMenu';
+import { useAuth } from './lib/auth';
 import AdminDashboard from './components/AdminDashboard';
 import CreationsViews from './components/CreationsViews';
 import MobileNotice from './components/MobileNotice';
@@ -122,6 +123,7 @@ export default function App() {
     return ds === 'tw' || ds === 'lab' ? ds : 'nasa';
   });
   const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('nasa_tour_taken'));
+  const { isAdmin } = useAuth(); // admin-only Emulator tab (you + Ed + Miles)
 
   useEffect(() => {
     Promise.all([fetch('/worlds.json').then((r) => r.json()), fetch('/meta.json').then((r) => r.json())])
@@ -206,6 +208,12 @@ export default function App() {
           <button className={dataset === 'lab' ? 'on' : ''} role="tab" aria-selected={dataset === 'lab'} onClick={() => setDataset('lab')}>Imagine · Lab</button>
         </div>
         <div className="tb-right">
+          {isAdmin && (
+            <a className="emulator-tab" href="/emulator" title="Climate emulator — private admin preview">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+              Emulator
+            </a>
+          )}
           <span className="src">{dataset === 'nasa' ? `NASA Exoplanet Archive · ${meta.total.toLocaleString()} worlds` : dataset === 'lab' ? 'Imagine Lab · overlay real + simulated · honest hypotheses' : 'ThousandWorlds benchmark · 1,659 climates · CC-BY-4.0'}</span>
           <AuthMenu />
         </div>

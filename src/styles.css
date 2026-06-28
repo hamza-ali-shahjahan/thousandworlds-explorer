@@ -55,6 +55,9 @@ button { font-family: inherit; cursor: pointer; }
 .topbar .tagline { color: var(--text-dim); font-size: 13px; }
 .topbar .src { color: var(--text-faint); font-size: 12px; text-align: right; }
 .topbar .tb-right { justify-self: end; display: flex; align-items: center; gap: 14px; min-width: 0; }
+/* admin-only Emulator tab — a distinct pill, set apart from the three dataset tabs */
+.emulator-tab { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: #cdb6ff; background: rgba(42, 31, 77, 0.45); border: 1px solid rgba(74, 58, 122, 0.55); padding: 5px 11px; border-radius: 999px; white-space: nowrap; text-decoration: none; transition: border-color 0.14s ease, background 0.14s ease; }
+.emulator-tab:hover { border-color: #6a5aaa; background: rgba(42, 31, 77, 0.7); }
 
 .main { flex: 1; display: grid; grid-template-columns: 268px 1fr 326px; min-height: 0; }
 .main.tw3 { grid-template-columns: 268px 1fr 326px; }
