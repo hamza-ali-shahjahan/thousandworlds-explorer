@@ -200,7 +200,7 @@ export default function App() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
           )}
-          <span className="brand"><b>Thousand</b>Worlds<span className="brand-explorer"> Explorer</span></span>
+          <span className="brand"><img className="brand-mark" src="/favicon.svg" alt="" aria-hidden="true" /><span className="brand-wm"><b>Thousand</b>Worlds<span className="brand-explorer"> Explorer</span></span></span>
         </div>
         <div className="dstoggle" role="tablist" aria-label="Dataset">
           <button className={dataset === 'nasa' ? 'on' : ''} role="tab" aria-selected={dataset === 'nasa'} onClick={() => setDataset('nasa')}>Discovered · NASA</button>

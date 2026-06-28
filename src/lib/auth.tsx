@@ -19,6 +19,7 @@ interface AuthState {
   profile: Profile | null;
   isAdmin: boolean;
   signIn: (email: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -67,6 +68,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: { emailRedirectTo: window.location.origin },
+      });
+      return { error: error ? error.message : null };
+    },
+    async signInWithGoogle() {
+      if (!supabase) return { error: 'Accounts are not configured yet.' };
+      // Full-page redirect to Google, then back to the app (origin must be in
+      // Supabase's redirect allow-list — same one the magic link uses).
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
       });
       return { error: error ? error.message : null };
     },

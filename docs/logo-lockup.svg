@@ -1,0 +1,19 @@
+<svg viewBox="0 0 880 200" width="880" height="200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ThousandWorlds Explorer">
+  <g transform="translate(22,25) scale(0.625)">
+    <rect width="240" height="240" rx="52" fill="#0b0f1a"/>
+    <line x1="146" y1="146" x2="198" y2="198" stroke="#c7d4ee" stroke-width="22" stroke-linecap="round"/>
+    <clipPath id="lkLens"><circle cx="103" cy="103" r="60"/></clipPath>
+    <g clip-path="url(#lkLens)">
+      <circle cx="103" cy="103" r="60" fill="#0d1322"/>
+      <circle cx="96" cy="100" r="20" fill="#fbe7c4"/>
+      <circle cx="138" cy="92" r="11" fill="#6fa8ff"/>
+      <circle cx="74" cy="128" r="8" fill="#46d49a"/>
+      <circle cx="124" cy="132" r="7" fill="#f0b24a"/>
+      <circle cx="132" cy="115" r="4.5" fill="#e2685a"/>
+    </g>
+    <circle cx="103" cy="103" r="60" fill="none" stroke="#c7d4ee" stroke-width="9"/>
+  </g>
+  <text x="200" y="117" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="46">
+    <tspan fill="#e7ebf7" font-weight="400">Thousand</tspan><tspan fill="#e7ebf7" font-weight="600">Worlds</tspan><tspan fill="#9aa3be" font-weight="400" dx="16">Explorer</tspan>
+  </text>
+</svg>

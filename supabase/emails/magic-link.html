@@ -1,0 +1,44 @@
+<!--
+  ThousandWorlds Explorer — branded auth email.
+  Paste this into Supabase → Authentication → Emails for BOTH the
+  "Magic Link" and "Confirm signup" templates (same {{ .ConfirmationURL }} variable).
+  Suggested subject: "Your ThousandWorlds sign-in link"
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0; padding:0; background:#070a12;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#070a12;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px; width:100%; background:#0d1119; border:1px solid #1d2433; border-radius:16px;">
+          <tr>
+            <td style="padding:34px 38px 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:#6fa8ff; font-weight:700;">&#10022; ThousandWorlds Explorer</div>
+              <h1 style="margin:18px 0 10px; font-size:23px; line-height:1.3; color:#e7ebf7; font-weight:600;">Your sign-in link</h1>
+              <p style="margin:0 0 26px; font-size:15px; line-height:1.65; color:#9aa3be;">Tap the button below to sign in to ThousandWorlds &mdash; the explorable map of every world we&rsquo;ve found, and every climate we&rsquo;ve imagined.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#6fa8ff" style="border-radius:10px;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block; padding:14px 28px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; font-weight:600; color:#07101e; text-decoration:none; border-radius:10px;">Sign in to ThousandWorlds &rarr;</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:26px 0 0; font-size:12.5px; line-height:1.6; color:#6b748f; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Button not working? Paste this link into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#6fa8ff; word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:26px 38px 34px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="border-top:1px solid #1d2433; padding-top:18px; font-size:12px; line-height:1.65; color:#5b637c;">This link signs you in and expires shortly. If you didn&rsquo;t request it, you can safely ignore this email &mdash; nothing will happen.</div>
+            </td>
+          </tr>
+        </table>
+        <div style="max-width:480px; margin:16px auto 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; color:#454c63; text-align:center;">thousandworldsexplorer.com &middot; a simulated analogy, not a habitability claim</div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
