@@ -245,6 +245,10 @@ export default function App() {
         <DetailPanel world={selected} />
       </div>
       )}
+      <footer className="sitefoot">
+        Built with <span className="foot-heart" aria-label="love">❤️</span> using{' '}
+        <a href="https://github.com/hamza-ali-shahjahan/hamzaish" target="_blank" rel="noreferrer">/hamzaish</a>
+      </footer>
     </div>
   );
 }
