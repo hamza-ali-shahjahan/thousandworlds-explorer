@@ -21,9 +21,15 @@ vite.config.d.ts
 
 # personal / local editor + tooling config
 .claude/settings.local.json
+# dev-server launch config — machine-specific absolute paths, stays local
+.claude/launch.json
 
 # autonomous goal-loop process log (internal build journal, not part of the app)
 .goal/
+
+# Ed's shared reference code/plots (derived from his internal `xce` package) — kept
+# locally to guide the emulator demo build; NOT for the public repo without his OK.
+Ed Shared/
 
 # Raw API pulls can be regenerated with `npm run data`
 data/raw/
