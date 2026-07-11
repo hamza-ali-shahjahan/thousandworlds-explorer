@@ -1,0 +1,57 @@
+{
+  "_about": "Curated JWST (and noted Spitzer) atmosphere verdicts for small/rocky exoplanets, for the Cosmic Shoreline view. Names verified against pscomppars pl_name via TAP on 2026-07-12. Verdicts follow the primary literature; single-eclipse results are provisional (see caveats). Curated 2026-07-12.",
+  "planets": [
+    { "name": "TRAPPIST-1 b", "verdict": "bare-rock", "basis": "MIRI dayside T_b 503 K near zero-redistribution bare-rock max; thick CO2 ruled out; 2026 phase curve: no nightside emission, no offset, P ≳ 1 bar strongly disfavoured (hazy-CO2 alternative noted 2025)", "citation": "Greene+ 2023 Nature 618,39; Ducrot+ 2025 Nat.Astron. (arXiv:2412.11627); Gillon+ 2026 Nat.Astron. (arXiv:2509.02128)", "year": 2023 },
+    { "name": "TRAPPIST-1 c", "verdict": "no-thick-atmosphere", "basis": "MIRI eclipse T_b 380 K rules out cloud-free O2/CO2 from 10 bar to 0.1 bar pure CO2; 2026 phase curve disfavours ≳1 bar; tenuous O2-rich or airless remain", "citation": "Zieba+ 2023 Nature 620,746; Gillon+ 2026 Nat.Astron. (arXiv:2509.02128)", "year": 2023 },
+    { "name": "TRAPPIST-1 d", "verdict": "no-thick-atmosphere", "basis": "Flat NIRSpec/PRISM transmission: H2-dominated rejected >3σ; Titan/cloud-free-Venus/early-Mars/Archean/modern-Earth analogs ruled out >95%; thin or aerosol-capped remain", "citation": "Piaulet-Ghorayeb+ 2025 ApJ (arXiv:2508.08416)", "year": 2025 },
+    { "name": "TRAPPIST-1 e", "verdict": "ambiguous", "basis": "DREAMS transits rule out cloudy H2-dominated >3σ, but stellar contamination dominates; bare rock and N2-rich secondary both fit", "citation": "Espinoza+ 2025 ApJL 990,L52 (arXiv:2509.05414); Glidden+ 2025 ApJL 990,L53", "year": 2025 },
+    { "name": "LHS 3844 b", "verdict": "bare-rock", "basis": "MIRI/LRS eclipse spectrum: dark space-weathered basalt, featureless, matches zero-redistribution bare rock; ~100 mbar CO2 upper limit (confirms Spitzer 2019 phase curve)", "citation": "Zieba+ 2026 Nat.Astron. (arXiv:2605.00100); Kreidberg+ 2019 Nature 573,87", "year": 2026 },
+    { "name": "GJ 1252 b", "verdict": "bare-rock", "basis": "Spitzer (not JWST): dayside T_b 1410 K matches zero-redistribution bare rock; P < ~10 bar, most CO2 atmospheres ruled out", "citation": "Crossfield+ 2022 ApJL 937,L17 (arXiv:2208.09479)", "year": 2022 },
+    { "name": "GJ 486 b", "verdict": "no-thick-atmosphere", "basis": "MIRI eclipse rules out >~1 bar atmospheres with ≳100 ppm H2O/CO2, against the earlier water-or-starspots transmission slope; thin atmosphere not excluded", "citation": "Mansfield+ 2024 ApJL (arXiv:2408.15123); Moran+ 2023 ApJL 948,L11", "year": 2024 },
+    { "name": "GJ 367 b", "verdict": "bare-rock", "basis": "MIRI full phase curve: nightside flux 4±8 ppm, phase amplitude 0.97 — zero-albedo zero-redistribution airless rock", "citation": "Zhang+ 2024 ApJL (arXiv:2401.01400)", "year": 2024 },
+    { "name": "GJ 3929 b", "verdict": "no-thick-atmosphere", "basis": "Rocky Worlds DDT #1: full 4-eclipse set gives T_b 641 K, consistent with bare rock, but only thick non-inverted CO2 excluded >3σ; thin atmospheres viable", "citation": "Xue+ 2025 ApJL 995,L52 (arXiv:2508.12516); Connors+ 2026 (arXiv:2606.07511)", "year": 2025 },
+    { "name": "55 Cnc e", "verdict": "atmosphere-candidate", "basis": "NIRCam+MIRI eclipse spectra read as CO/CO2 secondary atmosphere over a magma ocean; contested — strong eclipse-depth variability", "citation": "Hu+ 2024 Nature 630,609; Patel+ 2024 (arXiv:2407.12898)", "year": 2024 },
+    { "name": "LTT 1445 A b", "verdict": "no-thick-atmosphere", "basis": "MIRI eclipse T_b 525 K ≈ 96% of bare-rock max; ~100 bar A_B>0.08 excluded 3σ, 1–100 bar pure CO2 disfavoured; Mars/Titan/Earth-thickness unresolved", "citation": "Wachiraphan+ 2025 AJ 169,311 (arXiv:2410.10987)", "year": 2025 },
+    { "name": "GJ 1132 b", "verdict": "bare-rock", "basis": "MIRI eclipse T_b 709 K (1σ below airless max); ≥1% CO2 ruled out; 4 co-added NIRSpec transits featureless — simplest reading is bare rock", "citation": "Xue+ 2024 ApJL (arXiv:2408.13340); Bennett+ 2025 AJ 170,205", "year": 2024 },
+    { "name": "TOI-1468 b", "verdict": "bare-rock", "basis": "Hot Rocks II: T_b 1024 K consistent with zero-albedo airless rock; pure CO2/H2O > 1 bar ruled out", "citation": "Meier Valdés+ 2025 A&A (arXiv:2503.19772)", "year": 2025 },
+    { "name": "L 98-59 b", "verdict": "atmosphere-candidate", "basis": "NIRSpec transits favor SO2-rich volcanic atmosphere at 3.6σ model-level (2.4σ nested) — tentative", "citation": "Bello-Arufe+ 2025 ApJL (arXiv:2501.18680)", "year": 2025 },
+    { "name": "L 98-59 c", "verdict": "ambiguous", "basis": "COMPASS: featureless transmission; H2-He primaries and MMW <~10 ruled out 3σ; high-MMW secondary vs airless unresolved", "citation": "Scarsdale+ 2024 AJ 168,276 (arXiv:2409.07552)", "year": 2024 },
+    { "name": "L 98-59 d", "verdict": "atmosphere-candidate", "basis": "Transmission retrievals favor high-MMW sulfur-bearing (H2S+SO2) secondary at ~2.3–2.6σ in two analyses; volatile-rich bulk density", "citation": "Gressier+ 2024 ApJL; Banerjee+ 2024 ApJL 975,L11", "year": 2024 },
+    { "name": "LHS 1140 b", "verdict": "atmosphere-candidate", "basis": "Clear H2-dominated ruled out; ~2.3σ hint of N2-dominated secondary on a likely water world; more JWST scheduled", "citation": "Cadieux+ 2024 ApJL 970,L2; Damiano+ 2024 ApJL", "year": 2024 },
+    { "name": "LHS 1478 b", "verdict": "ambiguous", "basis": "Hot Rocks I: possible shallow eclipse (would imply atmosphere) but the two visits disagree — inconclusive, follow-up scheduled", "citation": "August+ 2025 A&A (arXiv:2410.11048)", "year": 2025 },
+    { "name": "LHS 1140 c", "verdict": "bare-rock", "basis": "Hot Rocks III: dayside T_b 561 K vs airless max 537 K; pure CO2 ≥ 10 mbar and H2O ≥ 1 bar ruled out >3σ", "citation": "Fortune+ 2025 A&A 701,A25 (arXiv:2505.22186)", "year": 2025 },
+    { "name": "LTT 3780 b", "verdict": "bare-rock", "basis": "Hot Rocks IV: dayside ~98% of zero-redistribution max; CO2-bearing atmospheres ruled out to ~0.01 bar", "citation": "Allen+ 2025 AJ (arXiv:2508.14210)", "year": 2025 },
+    { "name": "GJ 3473 b", "verdict": "ambiguous", "basis": "Hot Rocks V: eclipse somewhat shallower than dark bare rock; thick CO2 ruled out above ~1.2–6.5 bar; moderate atmosphere and bare rock both consistent", "citation": "Holmberg+ 2026 AJ (arXiv:2604.02332)", "year": 2026 },
+    { "name": "TOI-1685 b", "verdict": "bare-rock", "basis": "NIRSpec phase curve: dayside 0.98±0.07 × airless blackbody; H2-dominated ruled out; featureless in emission + transmission", "citation": "Luque+ 2025 AJ (arXiv:2412.03411)", "year": 2025 },
+    { "name": "GJ 357 b", "verdict": "ambiguous", "basis": "COMPASS: featureless; MMW < 8 and metallicity < 300× solar ruled out — CO2-rich secondary vs bare rock unresolved", "citation": "Adams Redai+ 2025 AJ (arXiv:2507.07165)", "year": 2025 },
+    { "name": "GJ 9827 d", "verdict": "atmosphere-candidate", "basis": "Steam-world: water-dominated high-MMW atmosphere detected (1.98 R⊕ — volatile-rich, borderline rocky)", "citation": "Piaulet-Ghorayeb+ 2024 ApJL 974,L10", "year": 2024 }
+  ],
+  "shorelines": [
+    {
+      "id": "zc17_xuv",
+      "label": "Zahnle & Catling 2017 (I_XUV ∝ v_esc⁴)",
+      "form": "log10(I_XUV) = 4·log10(v_esc) − 3.17 (Mars-anchored: I_XUV ≈ 0.43·(v_esc/5.03 km/s)⁴)",
+      "implementation_notes": "v_esc = 11.186·sqrt(mass/radius) km/s (Earth units). Convert bolometric→cumulative-XUV with xuv_scaling. Canonical anchor is Mars, NOT Earth (Earth sits ~10× on the retention side).",
+      "citation": "Zahnle & Catling 2017, ApJ 843, 122"
+    },
+    {
+      "id": "eecs_2026",
+      "label": "Empirical shoreline (Meni-Gallardo & Pallé 2026)",
+      "form": "log10(I_XUV) = 5.77·log10(v_esc) − 4.35",
+      "implementation_notes": "Anchored on Mars + four tentative-atmosphere exoplanets; steeper slope consistent with Berta-Thompson+ 2025 (5.9 +0.61/−0.43). Same axes as zc17_xuv. ARM = 5.77·log10(v_esc) − log10(I_XUV) − 4.35 (>0 ⇒ retention side).",
+      "citation": "Meni-Gallardo & Pallé 2026, MNRAS accepted (arXiv:2508.12865)"
+    }
+  ],
+  "xuv_scaling": {
+    "formula": "I_XUV/I_XUV,⊕ = (S/S⊕) × (L_bol/L_sun)^(−0.6); L/L_sun from st_lum (10^st_lum) or fallback st_rad² × (st_teff/5772)⁴",
+    "notes": "Standard ZC17 cumulative-XUV scaling. For mid/late M dwarfs (M* < 0.35 M_sun) measured fluences run 2.1–3.1× higher (Pass+ 2025, arXiv:2504.01182) — offer a ×2.5 toggle in that regime.",
+    "citation": "Zahnle & Catling 2017, ApJ 843, 122; Pass et al. 2025, ApJL (arXiv:2504.01182)"
+  },
+  "caveats": [
+    "TOI-771 b (Rocky Worlds DDT #2): observations executing mid-2026, no published verdict as of 2026-07-12 — show as pending, uncolored.",
+    "GJ 1252 b is a Spitzer result (no JWST yet); LHS 3844 b's bare-rock verdict began with Spitzer and was confirmed by JWST in 2026.",
+    "Single-eclipse verdicts are systematics-sensitive; 2026 uniform reanalyses shifted several depths by ~1σ (arXiv:2604.15421, arXiv:2507.02052).",
+    "Flat transmission alone can never exclude a high-MMW secondary atmosphere — such verdicts are marked ambiguous, not bare-rock.",
+    "K2-18 b, LP 791-18 c, GJ 3090 b, Pi Men c, GJ 1214 b are excluded: R > 2 R⊕, not rocky."
+  ]
+}
