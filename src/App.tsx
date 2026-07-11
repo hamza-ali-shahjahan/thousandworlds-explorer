@@ -264,6 +264,9 @@ export default function App() {
       <footer className="sitefoot">
         Built with <span className="foot-heart" aria-label="love">❤️</span> using{' '}
         <a href="https://github.com/hamza-ali-shahjahan/hamzaish" target="_blank" rel="noreferrer">/hamzaish</a>
+        {meta?.generated && (
+          <span className="foot-data"> · NASA archive data as of {new Date(meta.generated).toISOString().slice(0, 10)}</span>
+        )}
       </footer>
     </div>
   );

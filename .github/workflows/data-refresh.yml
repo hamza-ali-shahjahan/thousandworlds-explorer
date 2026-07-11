@@ -1,0 +1,94 @@
+# Weekly NASA Exoplanet Archive refresh.
+#
+# Pulls pscomppars via the TAP API, rebuilds public/worlds.json + meta.json,
+# validates the result (scripts/validate-data.mjs — fails loudly on schema
+# drift or suspicious row counts), and opens an auto-merging PR. `main` is
+# ruleset-protected, so the change lands through a PR whose `build` check runs
+# like any other.
+#
+# Needs one repo secret: DATA_REFRESH_PAT — a fine-grained personal access
+# token scoped to THIS repo with "Contents: read/write" and "Pull requests:
+# read/write". (The default GITHUB_TOKEN can't be used: PRs it creates never
+# trigger the required `build` check.)
+name: Data refresh
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the PAT
+        env:
+          HAS_PAT: ${{ secrets.DATA_REFRESH_PAT }}
+        run: |
+          if [ -z "$HAS_PAT" ]; then
+            echo "::error::DATA_REFRESH_PAT secret is not set — add a fine-grained PAT (Contents + Pull requests: write) in repo Settings → Secrets → Actions."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.DATA_REFRESH_PAT }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Pull pscomppars from the TAP API
+        run: |
+          mkdir -p data/raw
+          curl -sfG "https://exoplanetarchive.ipac.caltech.edu/TAP/sync" \
+            --retry 3 --retry-delay 30 --max-time 300 \
+            --data-urlencode "query=select pl_name,hostname,sy_dist,pl_rade,pl_bmasse,pl_dens,pl_eqt,pl_insol,pl_orbper,pl_orbsmax,pl_orbeccen,disc_year,discoverymethod,disc_facility,st_teff,st_rad,st_mass,st_spectype,sy_snum,sy_pnum,ra,dec from pscomppars" \
+            --data-urlencode "format=csv" -o data/raw/pscomppars.csv
+          BYTES=$(wc -c < data/raw/pscomppars.csv)
+          echo "pulled ${BYTES} bytes"
+          if [ "$BYTES" -lt 500000 ]; then
+            echo "::error::TAP response suspiciously small (${BYTES} bytes) — archive outage or query error"
+            exit 1
+          fi
+
+      - name: Rebuild + validate
+        run: |
+          npm ci
+          npm run data
+          node scripts/validate-data.mjs
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- public/worlds.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "worlds.json unchanged — skipping PR (meta timestamp alone isn't worth a commit)"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open auto-merging PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.DATA_REFRESH_PAT }}
+        run: |
+          set -euo pipefail
+          DATE=$(date -u +%Y-%m-%d)
+          BRANCH="data-refresh-${DATE}"
+          TOTAL=$(node -pe "JSON.parse(require('fs').readFileSync('public/meta.json','utf8')).total")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add public/worlds.json public/meta.json
+          git commit -m "Data refresh ${DATE}: ${TOTAL} worlds from the NASA Exoplanet Archive"
+          git push -u origin "$BRANCH"
+          gh pr create --title "Data refresh ${DATE} (${TOTAL} worlds)" \
+            --body "Automated weekly pull from the NASA Exoplanet Archive (pscomppars via TAP). Validated by scripts/validate-data.mjs. Auto-merges once the build check passes." \
+            --base main --head "$BRANCH"
+          gh pr merge "$BRANCH" --auto --squash
