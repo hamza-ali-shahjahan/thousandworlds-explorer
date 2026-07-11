@@ -90,6 +90,23 @@ export function worldsToCsv(rows: World[]): string {
   return `${head}\n${body}`;
 }
 
+// Fetch a binary asset, transparently gunzipping `.gz` files. The heavy static
+// assets (surface fields, ONNX weights) ship pre-compressed because the CDN
+// doesn't compress application/octet-stream on the wire. Some servers (vite
+// preview) instead send `.gz` files with Content-Encoding: gzip — the browser
+// then decompresses them in transport — so sniff the gzip magic bytes rather
+// than trusting the extension.
+export async function fetchBinary(url: string): Promise<ArrayBuffer> {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  const buf = await r.arrayBuffer();
+  const b = new Uint8Array(buf);
+  if (b.length > 2 && b[0] === 0x1f && b[1] === 0x8b) {
+    return new Response(new Response(buf).body!.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  }
+  return buf;
+}
+
 export function downloadText(filename: string, text: string, mime = 'text/csv'): void {
   const blob = new Blob([text], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);

@@ -31,12 +31,31 @@ export interface Creation {
   created_at: string;
 }
 
-// Fire-and-forget activity log (runs / saves / shares) for the admin dashboard.
-// Silently no-ops when signed out or when Supabase isn't configured.
+// A random per-tab-session id so the admin dashboard can tell visits apart
+// without identifying anyone: no cookie, no fingerprint, gone when the tab closes.
+function anonSession(): string {
+  let s = sessionStorage.getItem('tw_sid');
+  if (!s) { s = crypto.randomUUID(); sessionStorage.setItem('tw_sid', s); }
+  return s;
+}
+
+// "Do not track me" browser signals — honored for anonymous usage events.
+const dnt = () =>
+  navigator.doNotTrack === '1' || (navigator as { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
+
+// Fire-and-forget activity log for the admin dashboard. Signed-in events carry
+// the user id; anonymous events (pageviews, errors) insert with user_id null
+// and only a random session id — never an IP, user-agent, or identifier.
+// Silently no-ops when Supabase isn't configured or the visitor asked not
+// to be tracked.
 export function logEvent(type: string, meta: Record<string, unknown> = {}): void {
   if (!supabase) return;
-  supabase.auth.getUser().then(({ data }) => {
-    if (!data.user) return;
-    void supabase!.from('events').insert({ user_id: data.user.id, type, meta });
+  supabase.auth.getSession().then(({ data }) => {
+    const uid = data.session?.user.id ?? null;
+    if (!uid && dnt()) return;
+    // .then() matters: supabase-js builders are lazy thenables — without it
+    // the request is never sent at all.
+    supabase!.from('events').insert({ user_id: uid, type, meta: { ...meta, sid: anonSession() } })
+      .then(null, () => {});
   });
 }

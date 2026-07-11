@@ -93,6 +93,6 @@
       400
     ],
     "sentinel": 0,
-    "asset": "tw-surface.u8"
+    "asset": "tw-surface.u8.gz"
   }
 }

@@ -15,7 +15,7 @@ python -c "import thousandworlds as tw; tw.download_dataset(data_dir='dataset')"
 Usage:
   python scripts/build-thousandworlds.py --dataset /path/to/dataset --out public
 """
-import argparse, csv, json, os
+import argparse, csv, gzip, json, os
 from collections import Counter
 from datetime import datetime, timezone
 import numpy as np
@@ -104,7 +104,10 @@ os.makedirs(args.out, exist_ok=True)
 with open(os.path.join(args.out, 'thousandworlds.json'), 'w') as fp:
     json.dump(out, fp)
 surf_arr = np.stack(surf_u8).astype(np.uint8)                      # (N, 32, 64), row i <-> out[i]
-surf_arr.tofile(os.path.join(args.out, 'tw-surface.u8'))
+# Ship gzipped: the CDN won't compress application/octet-stream, so the app
+# fetches the .gz and gunzips client-side (see fetchBinary in src/lib/util.ts).
+with gzip.open(os.path.join(args.out, 'tw-surface.u8.gz'), 'wb', compresslevel=9) as gz:
+    gz.write(surf_arr.tobytes())
 
 def rng(key):
     vals = [o[key] for o in out if o[key] is not None]
@@ -124,13 +127,13 @@ meta = {
     'full_subset': 'multi-partial (full dataset; missing fields represented as NaNs)',
     'gcms': sorted(Counter(o['gcm'] for o in out).items(), key=lambda x: -x[1]),
     'ranges': {k: rng(k) for k in ['radius', 'gravity', 'rotation', 'pressure', 'co2', 'ch4', 'flux', 'st_teff', 'tsurf', 'asr', 'olr', 'cloud']},
-    'field': {'name': 'surface_temperature', 'grid': [32, 64], 'kRange': list(SURF_KRANGE), 'sentinel': 0, 'asset': 'tw-surface.u8'},
+    'field': {'name': 'surface_temperature', 'grid': [32, 64], 'kRange': list(SURF_KRANGE), 'sentinel': 0, 'asset': 'tw-surface.u8.gz'},
 }
 with open(os.path.join(args.out, 'thousandworlds-meta.json'), 'w') as fp:
     json.dump(meta, fp, indent=2)
 
 print(f"wrote {len(out)} simulations -> {args.out}/thousandworlds.json")
-print(f"wrote surface field {surf_arr.shape} -> {args.out}/tw-surface.u8 "
-      f"({surf_arr.nbytes/1e6:.2f} MB; missing/sentinel cells={int((surf_arr == 0).sum())})")
+print(f"wrote surface field {surf_arr.shape} -> {args.out}/tw-surface.u8.gz "
+      f"({surf_arr.nbytes/1e6:.2f} MB raw; missing/sentinel cells={int((surf_arr == 0).sum())})")
 print("tsurf range:", meta['ranges']['tsurf'], " GCMs:", meta['gcms'])
 print("sample:", json.dumps(out[0]))

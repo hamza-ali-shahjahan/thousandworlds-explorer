@@ -17,15 +17,16 @@
 //   5. reshape 32x64, pack to uint8 over kRange — the SurfaceMap's exact format.
 //
 // Artifacts live in /public/emulator/ (produced by the export POC):
-//   pca_gbt_surface_temperature.onnx          (~660KB raw / ~100KB gz)
+//   pca_gbt_surface_temperature.onnx.gz       (~1.0MB; gunzipped client-side —
+//                                              the CDN won't compress octet-stream)
 //   collapsed_G_lat.npy   (2048 x q  f32)
 //   collapsed_G_trend.npy (2048 x P  f32)
 //   collapsed_g_bias.npy  (2048      f32)
 //   input_transform_surface_temperature.json  (per-input strategy + mean/std)
 //   emulator_meta.json                        (latent_dim, d_in, grid, sigma...)
 //
-// Requires `onnxruntime-web` (add to package.json). Until the assets/dep land,
-// load() resolves to null and BuildAWorld keeps using its kNN predictField.
+// Wired into BuildAWorld.tsx (which keeps its kNN predictField as the fallback
+// when load() resolves null); the UI badge reads pred.source for honesty.
 // ---------------------------------------------------------------------------
 
 import type { BuildParams } from '../components/BuildAWorld';
@@ -55,6 +56,18 @@ type EmulatorMeta = {
 
 const BASE = `${import.meta.env.BASE_URL ?? '/'}emulator/`;
 const LOG_EPS = 1e-16;
+
+// Gunzip when the buffer carries the gzip magic bytes. The .onnx.gz ships
+// pre-compressed (CDNs skip octet-stream), but some servers (vite preview)
+// send it Content-Encoding: gzip so it arrives already decompressed — sniff,
+// don't trust the extension. Kept local so this file stays self-contained.
+async function gunzipMaybe(buf: ArrayBuffer): Promise<ArrayBuffer> {
+  const b = new Uint8Array(buf);
+  if (b.length > 2 && b[0] === 0x1f && b[1] === 0x8b) {
+    return new Response(new Response(buf).body!.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  }
+  return buf;
+}
 
 // --- tiny .npy (v1, little-endian, C-order float32) reader ------------------
 function parseNpyF32(buf: ArrayBuffer): { data: Float32Array; shape: number[] } {
@@ -127,7 +140,7 @@ export class PcaGbtEmulator {
       const [metaR, inputR, onnxR, glatR, gtrendR, gbiasR] = await Promise.all([
         grab('emulator_meta.json'),
         grab('input_transform_surface_temperature.json'),
-        grab('pca_gbt_surface_temperature.onnx'),
+        grab('pca_gbt_surface_temperature.onnx.gz'),
         grab('collapsed_G_lat.npy'),
         grab('collapsed_G_trend.npy'),
         grab('collapsed_g_bias.npy'),
@@ -135,7 +148,7 @@ export class PcaGbtEmulator {
       const e = new PcaGbtEmulator();
       e.meta = await metaR.json();
       e.inputs = (await inputR.json()).inputs as InputSpec[];
-      e.session = await _ort.InferenceSession.create(await onnxR.arrayBuffer(), { executionProviders: ['wasm'] });
+      e.session = await _ort.InferenceSession.create(await gunzipMaybe(await onnxR.arrayBuffer()), { executionProviders: ['wasm'] });
       const glat = parseNpyF32(await glatR.arrayBuffer());
       const gtrend = parseNpyF32(await gtrendR.arrayBuffer());
       const gbias = parseNpyF32(await gbiasR.arrayBuffer());
@@ -206,29 +219,7 @@ function regime(t: number): string {
   return 'Scorching';
 }
 
-// ---------------------------------------------------------------------------
-// Wiring sketch in BuildAWorld.tsx (keeps the kNN as fallback):
-//
-//   import { PcaGbtEmulator, type Prediction } from '../lib/emulator';
-//   const [emu, setEmu] = useState<PcaGbtEmulator | null>(null);
-//   useEffect(() => { PcaGbtEmulator.load().then(setEmu); }, []);
-//
-//   const [pred, setPred] = useState<Prediction | null>(null);
-//   useEffect(() => {
-//     let live = true;
-//     if (emu) {
-//       emu.predict(p, field, ranges).then((r) => { if (live) setPred(r); });
-//     } else {
-//       // existing synchronous kNN stand-in, tagged source:'knn'
-//       const k = predictField(p, sims, surf, field, ranges);
-//       setPred(k && { ...k, source: 'knn' });
-//     }
-//     return () => { live = false; };
-//   }, [emu, p, field, ranges, sims, surf]);
-//
-// The UI badge can read pred.source to say "real PCA-GBT emulator" vs
-// "nearest-neighbour estimate", keeping the honesty the current copy promises.
-// Note: rawInputVector's CO2/P_rot/units are placeholders — calibrate them on
-// wire-up so the slider ranges land in-distribution (see ranges in
-// thousandworlds-meta.json), since the GBT extrapolates sharply out of the grid.
+// NOTE: this is the Explorer's copy of the emulator; the private emulator repo
+// carries a newer generation (per-GCM lens, per-asset lazy loading). Any weights
+// or calibration update must be applied to BOTH repos — see the roadmap notes.
 // ---------------------------------------------------------------------------

@@ -1,0 +1,38 @@
+# Supabase free-tier projects pause after ~7 days without database activity,
+# which would silently break sign-in / save / share until manually restored.
+# This ping issues one trivial REST query twice a week to keep the project warm.
+#
+# Needs two repo secrets (values from your .env.local — the anon key is the
+# public client key, not a private secret, but we keep it out of the repo):
+#   SUPABASE_URL       e.g. https://<project-ref>.supabase.co
+#   SUPABASE_ANON_KEY  the anon/public API key
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: '43 7 * * 1,4' # Mondays + Thursdays 07:43 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL / SUPABASE_ANON_KEY secrets not set — add them in repo Settings → Secrets → Actions (values from .env.local)."
+            exit 1
+          fi
+          # RLS keeps the response empty for anon; the query still counts as activity.
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/events?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "keep-alive query returned HTTP $STATUS"
+          case "$STATUS" in
+            2*) echo "project is awake" ;;
+            *) echo "::error::keep-alive failed with HTTP $STATUS — check the Supabase project status"; exit 1 ;;
+          esac

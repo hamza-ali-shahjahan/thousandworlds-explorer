@@ -5,7 +5,7 @@ import FindingForge from './FindingForge';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import type { World } from '../types';
 import type { TwWorld } from './ThousandWorlds';
-import { n, dotRadius } from '../lib/util';
+import { n, dotRadius, fetchBinary } from '../lib/util';
 import playgroundDiagram from '../../docs/playground.svg';   // the README's "how it works" flow — single source of truth
 
 // ---- shared climate color/regime (matches the Simulated tab) ----
@@ -596,7 +596,7 @@ export default function ImagineLab() {
   const addBuilt = (b: BuiltWorld) => { setBuilt((bs) => [...bs.filter((x) => x.name !== b.name), b]); setModal(null); };
   const removeBuilt = (name: string) => setBuilt((bs) => bs.filter((x) => x.name !== name));
   // The surface-field asset (~3.4 MB) is lazy-loaded on first need — opening Build, or clicking a world to inspect.
-  const ensureSurf = () => { if (!surf && meta.field) fetch(`/${meta.field.asset}`).then((r) => r.arrayBuffer()).then((b) => setSurf(new Uint8Array(b))).catch(() => {}); };
+  const ensureSurf = () => { if (!surf && meta.field) fetchBinary(`/${meta.field.asset}`).then((b) => setSurf(new Uint8Array(b))).catch(() => {}); };
   const openBuild = () => { ensureSurf(); setModal('build'); };
   const pickSim = (w: TwWorld, row: number) => { ensureSurf(); setSimDetail({ sim: w, row }); };
   const pickPin = (w: World) => { setSimDetail(null); setSelected(w); };

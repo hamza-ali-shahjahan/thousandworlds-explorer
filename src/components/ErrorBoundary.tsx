@@ -1,4 +1,5 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { logEvent } from '../lib/supabase';
 
 interface Props { children: ReactNode; }
 interface State { error: Error | null; }
@@ -10,6 +11,15 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    logEvent('client_error', {
+      message: String(error?.message ?? error).slice(0, 300),
+      stack: error?.stack?.slice(0, 600) ?? null,
+      component: info.componentStack?.slice(0, 300) ?? null,
+      url: window.location.href.slice(0, 300),
+    });
   }
 
   render() {
