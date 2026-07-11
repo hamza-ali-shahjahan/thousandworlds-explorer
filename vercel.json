@@ -4,5 +4,31 @@
     { "source": "/emulator", "destination": "https://thousandworlds-emulator-hamzas-projects-aec1699a.vercel.app/emulator" },
     { "source": "/emulator/", "destination": "https://thousandworlds-emulator-hamzas-projects-aec1699a.vercel.app/emulator" },
     { "source": "/emulator/:path*", "destination": "https://thousandworlds-emulator-hamzas-projects-aec1699a.vercel.app/emulator/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/ort/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000" }]
+    },
+    {
+      "source": "/(worlds|meta|thousandworlds|thousandworlds-meta).json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, stale-while-revalidate=86400" }]
+    },
+    {
+      "source": "/tw-surface.u8.gz",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=300, stale-while-revalidate=86400" }]
+    },
+    {
+      "source": "/emulator/pca_gbt_surface_temperature.onnx.gz",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000" }]
+    },
+    {
+      "source": "/og.png",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+    }
   ]
 }

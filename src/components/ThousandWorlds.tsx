@@ -6,7 +6,7 @@ import Modal from './Modal';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import TwTable from './TwTable';
 import TwCharts from './TwCharts';
-import { n, dotRadius, downloadText } from '../lib/util';
+import { n, dotRadius, downloadText, fetchBinary } from '../lib/util';
 
 // Plain-language decoder for the GCM (climate-model) codenames.
 const GCM_DESC: Record<string, string> = {
@@ -572,7 +572,7 @@ export default function ThousandWorlds() {
   // so the ~3.4 MB asset is only fetched once the user actually engages with a world.
   useEffect(() => {
     if (selected && !surf && meta?.field) {
-      fetch(`/${meta.field.asset}`).then((r) => r.arrayBuffer()).then((b) => setSurf(new Uint8Array(b))).catch(() => {});
+      fetchBinary(`/${meta.field.asset}`).then((b) => setSurf(new Uint8Array(b))).catch(() => {});
     }
   }, [selected, surf, meta]);
 
