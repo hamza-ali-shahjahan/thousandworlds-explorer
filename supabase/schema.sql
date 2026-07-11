@@ -98,8 +98,15 @@ create policy creations_delete on public.creations for delete
 
 drop policy if exists events_insert on public.events;
 drop policy if exists events_select on public.events;
+-- Signed-in events carry the user's id; anonymous usage events (pageviews,
+-- client errors) insert with user_id NULL. Size caps keep the anon-writable
+-- table from becoming a junk drawer.
 create policy events_insert on public.events for insert
-  with check (user_id = auth.uid());
+  with check (
+    (user_id is null or user_id = auth.uid())
+    and char_length(type) <= 64
+    and octet_length(meta::text) <= 4096
+  );
 create policy events_select on public.events for select
   using (public.is_admin());
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { World, Meta } from './types';
 import { TEMP_BANDS, band, worldsToCsv, downloadText, type BandLabel } from './lib/util';
 import DiscoveryMap from './components/DiscoveryMap';
@@ -16,6 +16,7 @@ import AdminDashboard from './components/AdminDashboard';
 import CreationsViews from './components/CreationsViews';
 import MobileNotice from './components/MobileNotice';
 import { resolveStop, randomWorld, TOUR } from './lib/tour';
+import { logEvent } from './lib/supabase';
 
 const allBands = (): Set<BandLabel> => new Set(TEMP_BANDS.map((b) => b.label));
 const defaultFilters = (meta: Meta): Filters => ({
@@ -124,6 +125,21 @@ export default function App() {
   });
   const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('nasa_tour_taken'));
   const { isAdmin } = useAuth(); // admin-only Emulator tab (you + Ed + Miles)
+
+  // Anonymous usage signal: one pageview on arrival, then tab switches — enough
+  // to know the site is alive and which tab people actually use (see privacy page).
+  useEffect(() => {
+    logEvent('pageview', {
+      tab: dataset,
+      ref: document.referrer ? new URL(document.referrer).hostname : null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only pageview
+  }, []);
+  const tabLogged = useRef(false);
+  useEffect(() => {
+    if (!tabLogged.current) { tabLogged.current = true; return; } // arrival tab is in the pageview
+    logEvent('tab', { tab: dataset });
+  }, [dataset]);
 
   useEffect(() => {
     Promise.all([fetch('/worlds.json').then((r) => r.json()), fetch('/meta.json').then((r) => r.json())])
