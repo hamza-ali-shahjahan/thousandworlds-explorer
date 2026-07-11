@@ -10,7 +10,7 @@
 
 <p align="center">
   An explorable, beginner-friendly map of worlds beyond our Solar System.<br>
-  Two datasets, one explorer — switch between them in the top bar.
+  Two datasets, three tabs — switch between them in the top bar.
 </p>
 
 <p align="center">
@@ -30,10 +30,13 @@
   [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/). Plotted by orbital period and
   size, colored by temperature, with Earth marked for scale. Tour it, filter it, chart it, export CSV.
 - **🌡️ Simulated · ThousandWorlds** — 1,659 *simulated* planetary climates from the **ThousandWorlds**
-  climate-emulation benchmark. A planet's parameters go in (starlight, air pressure, CO₂…), a global
+  climate-emulation benchmark (its `multi-complete` subset — the 1,760-run full set includes partial
+  records; [dataset notes](https://github.com/astroautomata/ThousandWorlds/blob/main/dataset/README.md)).
+  A planet's parameters go in (starlight, air pressure, CO₂…), a global
   climate model computes its climate, and each dot is one run — colored by the resulting surface
-  temperature (snowball → temperate → runaway). Take the guided tour, compare the five models, and see
-  how the same planet can come out differently.
+  temperature (snowball → temperate → scorching). Take the guided tour, compare the five models, and see
+  how the same planet can come out differently. Click a world to watch its actual simulated
+  **surface-temperature map** bloom out of the dot.
 
 Three goals in one app: a **beginner-friendly** explorer to learn from, a **shareable** showpiece, and
 a **serious analysis tool** over the full catalogs.
@@ -46,6 +49,10 @@ re-estimate a real discovered planet's climate using the simulators, probe under
 parameter space, and turn a hunch into a clearly-articulated, *falsifiable* hypothesis. Honest framing
 throughout — these are simulations and global means, never habitability claims. Built in the open, in
 the spirit of the ThousandWorlds benchmark it stands on.
+
+A full **interactive climate-emulator demo** (8 parameters in → predicted spatial climate fields out,
+across projections, energy maps and winds) is live in **private preview** for the benchmark's authors,
+and lands publicly when their flagship emulator ships.
 
 ## The playground — Imagine · Lab
 
@@ -64,10 +71,13 @@ datasets so you can test your own theories:
 - **Test your own equations** — write a formula over the real catalog (e.g. `esi / sqrt(dist)` for
   "Earth-like *and* nearby") and rank planets by *your* idea of what matters, then click a result to
   translate it. Runs through a tiny safe expression evaluator — no `eval`.
-- **Forge a hypothesis** — a *rigor gate* turns a hunch into a clearly-stated, falsifiable hypothesis:
-  it auto-fills the data + your assumptions, scores it against 8 rigor checks (a clear claim, a
-  physical mechanism, confounders, a falsifiable test, novelty, in-envelope…), lists the gaps still to
-  close, and hands you a copyable hypothesis card.
+- **Build a world** — set a world's starlight, star, pressure, CO₂, size and gravity with sliders and
+  watch a **client-side PCA-GBT emulator** (a real baseline from the benchmark, running as ONNX in your
+  browser) predict its spatial climate map with an honest uncertainty band — then *meet its real
+  cousin* in the NASA catalog.
+- **Test a hunch** — assemble a claim from dropdowns (no typing), test it against the 1,659
+  simulations, and get an honest verdict — Supported / Mixed / Not supported — with the matching
+  distribution and a shareable finding card.
 
 Playful to poke at, strict about what counts as a finding — and honest throughout: it re-estimates
 *simulated analogies*, never observations or habitability claims, and points at *places worth a closer
@@ -117,10 +127,25 @@ ever leaves your machine.
 
 </details>
 
+## Accounts, sharing & privacy
+
+The hosted site has **optional accounts** (magic link or Google) for saving and sharing the worlds and
+findings you make — browsing needs no account at all. Self-hosted copies run fully anonymously with no
+keys; to enable accounts on your own copy see [docs/accounts-setup.md](docs/accounts-setup.md).
+
+Usage measurement is **first-party and anonymous only** (a pageview, tab switches, client errors — no
+IP, no fingerprint, no third-party trackers, Do-Not-Track respected). Details:
+[privacy](https://thousandworldsexplorer.com/privacy) · [terms](https://thousandworldsexplorer.com/terms).
+
 ## Refresh the data
 
 > **You don't need any of this to run the explorer.** Both datasets ship pre-built in `public/` (a
 > ~384 KB ThousandWorlds slice + the NASA JSON). This section is only for *regenerating* them from source.
+
+> **The NASA data refreshes itself weekly:** a [GitHub Action](.github/workflows/data-refresh.yml)
+> pulls the archive every Monday, validates the result (schema, coverage, row-count sanity —
+> `scripts/validate-data.mjs`), and opens an auto-merging PR. The site footer shows the live
+> "data as of" date.
 
 ```bash
 # NASA — pulled live from the Exoplanet Archive TAP API:

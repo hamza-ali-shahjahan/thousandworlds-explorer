@@ -1,7 +1,7 @@
 {
   "name": "thousandworlds",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.8.0",
   "type": "module",
   "description": "An explorable map of every world humanity has discovered — built on the NASA Exoplanet Archive.",
   "scripts": {
