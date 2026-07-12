@@ -258,7 +258,7 @@ export default function App() {
           {view === 'table' && <DataTable worlds={filtered} selected={selected} onSelect={setSelected} sortKey={sortKey} dir={dir} onSort={onSort} />}
           {view === 'charts' && <Charts worlds={filtered} />}
         </div>
-        <DetailPanel world={selected} />
+        <DetailPanel world={selected} onOpenLab={() => setDataset('lab')} />
       </div>
       )}
       <footer className="sitefoot">
