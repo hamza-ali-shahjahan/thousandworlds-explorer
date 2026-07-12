@@ -152,7 +152,7 @@ IP, no fingerprint, no third-party trackers, Do-Not-Track respected). Details:
 curl -sG "https://exoplanetarchive.ipac.caltech.edu/TAP/sync" \
   --data-urlencode "query=select pl_name,hostname,sy_dist,pl_rade,pl_bmasse,pl_dens,pl_eqt,pl_insol,pl_orbper,pl_orbsmax,pl_orbeccen,disc_year,discoverymethod,disc_facility,st_teff,st_rad,st_mass,st_spectype,sy_snum,sy_pnum,ra,dec from pscomppars" \
   --data-urlencode "format=csv" -o data/raw/pscomppars.csv
-npm run data       # → public/worlds.json + public/meta.json
+npm run data       # → public/worlds.json + public/meta.json + the World-of-the-Day feed (public/wotd.json + /wotd.xml RSS)
 
 # ThousandWorlds — reduce the benchmark to area-weighted global means:
 python scripts/build-thousandworlds.py --dataset /path/to/ThousandWorlds/dataset --out public

@@ -30,3 +30,13 @@
   color: var(--accent); font-size: 11.5px; cursor: pointer;
 }
 .dp-lablink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* postcard download — quiet pill beside the global-mean readout; only rendered
+   where the honest portrait itself renders. */
+.dp-postcard {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px;
+  background: transparent; border: 1px solid rgba(154, 163, 190, 0.35); border-radius: 999px;
+  color: var(--text-dim); font-size: 10.5px; line-height: 1.4; cursor: pointer; white-space: nowrap;
+}
+.dp-postcard:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.dp-postcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
