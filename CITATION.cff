@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use ThousandWorlds Explorer in your research or reporting, please cite it as below."
+type: software
+title: "ThousandWorlds Explorer"
+authors:
+  - family-names: "Shahjahan"
+    given-names: "Hamza Ali"
+version: 0.8.0
+license: MIT
+url: "https://thousandworldsexplorer.com"
+repository-code: "https://github.com/hamza-ali-shahjahan/thousandworlds-explorer"
+abstract: >-
+  An explorable map of every world humanity has discovered — built on the NASA
+  Exoplanet Archive — alongside the 1,659 simulated climates of the
+  ThousandWorlds benchmark. Simulations and assumptions are always labeled;
+  the app makes no habitability claims.
+keywords:
+  - exoplanets
+  - astronomy
+  - data-visualization
+  - climate-emulation
+  - NASA Exoplanet Archive
+references:
+  - type: article
+    title: "ThousandWorlds: A benchmark for climate emulation of potentially habitable exoplanets"
+    authors:
+      - family-names: "Stevenson"
+        given-names: "Edward T."
+      - family-names: "Mak"
+        given-names: "Mei Ting"
+      - family-names: "Wolf"
+        given-names: "Eric"
+      - family-names: "Sergeev"
+        given-names: "Denis E."
+      - family-names: "Hammond"
+        given-names: "Tobi"
+      - family-names: "Mayne"
+        given-names: "N. J."
+      - family-names: "Cranmer"
+        given-names: "Miles"
+    year: 2026
+    doi: "10.48550/arXiv.2606.18338"
+  - type: dataset
+    title: "ThousandWorlds dataset"
+    authors:
+      - family-names: "Stevenson"
+        given-names: "Edward T."
+    doi: "10.57967/hf/8695"

@@ -9,6 +9,7 @@ import ThousandWorlds from './components/ThousandWorlds';
 import ImagineLab from './components/ImagineLab';
 import Sidebar, { ANY_DIST, type Filters, type PresetKey } from './components/Sidebar';
 import DetailPanel from './components/DetailPanel';
+import CiteModal from './components/CiteModal';
 import StatBar, { type View } from './components/StatBar';
 import Tour from './components/Tour';
 import AuthMenu from './components/AuthMenu';
@@ -18,6 +19,7 @@ import CreationsViews from './components/CreationsViews';
 import MobileNotice from './components/MobileNotice';
 import { resolveStop, randomWorld, TOUR } from './lib/tour';
 import { logEvent } from './lib/supabase';
+import { APP_VERSION } from './lib/version';
 
 const allBands = (): Set<BandLabel> => new Set(TEMP_BANDS.map((b) => b.label));
 const defaultFilters = (meta: Meta): Filters => ({
@@ -53,6 +55,7 @@ function encodeState(s: UrlState, meta: Meta, allMethods: number): string {
   if (s.sortKey !== 'dist_ly') p.set('sort', s.sortKey);
   if (s.dir !== 1) p.set('dir', '-1');
   if (s.selectedName) p.set('sel', s.selectedName);
+  if ([...p.keys()].length > 0) p.set('v', APP_VERSION); // stamp deep links so shared URLs record the app version that made them
   const str = p.toString();
   return str ? `?${str}` : window.location.pathname;
 }
@@ -125,6 +128,7 @@ export default function App() {
     return ds === 'tw' || ds === 'lab' ? ds : 'nasa';
   });
   const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('nasa_tour_taken'));
+  const [citeOpen, setCiteOpen] = useState(false);
   const { isAdmin } = useAuth(); // admin-only Emulator tab (you + Ed + Miles)
 
   // Anonymous usage signal: one pageview on arrival, then tab switches — enough
@@ -269,7 +273,10 @@ export default function App() {
         {meta?.generated && (
           <span className="foot-data"> · NASA archive data as of {new Date(meta.generated).toISOString().slice(0, 10)}</span>
         )}
+        {' · '}
+        <button className="foot-cite" onClick={() => setCiteOpen(true)} title="How to cite this app, the benchmark, and the NASA archive">Cite</button>
       </footer>
+      {citeOpen && <CiteModal onClose={() => setCiteOpen(false)} />}
     </div>
   );
 }

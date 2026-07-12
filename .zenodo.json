@@ -1,0 +1,24 @@
+{
+  "title": "ThousandWorlds Explorer",
+  "description": "An explorable map of every world humanity has discovered — built on the NASA Exoplanet Archive — alongside the 1,659 simulated climates of the ThousandWorlds benchmark. Simulations and assumptions are always labeled; the app makes no habitability claims.",
+  "upload_type": "software",
+  "license": "MIT",
+  "creators": [
+    { "name": "Shahjahan, Hamza Ali" }
+  ],
+  "keywords": ["exoplanets", "astronomy", "data-visualization", "climate-emulation", "NASA Exoplanet Archive"],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "10.48550/arXiv.2606.18338",
+      "scheme": "doi",
+      "resource_type": "publication-article"
+    },
+    {
+      "relation": "cites",
+      "identifier": "10.57967/hf/8695",
+      "scheme": "doi",
+      "resource_type": "dataset"
+    }
+  ]
+}
