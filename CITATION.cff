@@ -5,7 +5,7 @@ title: "ThousandWorlds Explorer"
 authors:
   - family-names: "Shahjahan"
     given-names: "Hamza Ali"
-version: 0.8.0
+version: 0.9.0
 license: MIT
 url: "https://thousandworldsexplorer.com"
 repository-code: "https://github.com/hamza-ali-shahjahan/thousandworlds-explorer"
