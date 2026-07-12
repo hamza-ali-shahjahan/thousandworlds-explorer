@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { World } from '../types';
 import { n } from '../lib/util';
 
-export type View = 'map' | 'table' | 'charts';
+export type View = 'map' | 'table' | 'charts' | 'shoreline';
 
 interface Props {
   total: number;
@@ -32,7 +32,7 @@ export default function StatBar({ total, matchCount, plottable, nearest, earthli
       </div>
       <div className="stat">
         <div className="v">{view === 'map' ? plottable.toLocaleString() : matchCount.toLocaleString()}</div>
-        <div className="k">{view === 'map' ? 'plotted on map' : view === 'table' ? 'rows in table' : 'worlds charted'}</div>
+        <div className="k">{view === 'map' ? 'plotted on map' : view === 'table' ? 'rows in table' : view === 'charts' ? 'worlds charted' : 'match filters'}</div>
       </div>
       {nearest && (
         <div className="stat" style={{ cursor: 'pointer' }} onClick={() => onSelect(nearest)}>
@@ -62,7 +62,7 @@ export default function StatBar({ total, matchCount, plottable, nearest, earthli
         CSV
       </button>
       <div className="viewtoggle" role="tablist" aria-label="View">
-        {(['map', 'table', 'charts'] as View[]).map((v) => (
+        {(['map', 'table', 'charts', 'shoreline'] as View[]).map((v) => (
           <button key={v} className={view === v ? 'on' : ''} role="tab" aria-selected={view === v} onClick={() => onView(v)}>
             {v[0].toUpperCase() + v.slice(1)}
           </button>

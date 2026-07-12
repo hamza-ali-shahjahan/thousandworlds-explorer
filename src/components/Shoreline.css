@@ -1,0 +1,33 @@
+/* Cosmic Shoreline view — escape velocity vs cumulative XUV with JWST verdicts.
+   Self-contained; reuses the shared .mapwrap / .legend / .tooltip primitives
+   from styles.css. No animation, so nothing to gate on prefers-reduced-motion. */
+.shoreline { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+.shore-controls {
+  flex: none; display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap;
+  padding: 8px 16px; border-bottom: 1px solid var(--border-soft);
+  font-size: 12px; color: var(--text-dim);
+}
+.shore-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+.shore-check input { accent-color: var(--accent); margin: 0; }
+.shore-check .hint { color: var(--text-faint); }
+.lsw { display: inline-block; width: 14px; height: 2px; border-radius: 1px; flex: none; }
+
+.shore-select {
+  margin-left: auto; max-width: 280px; padding: 4px 6px;
+  background: var(--bg-elev); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px;
+}
+.shore-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* verdict chips read as the ringed dots they stand for */
+.shore-legend .sw.vd { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.75); }
+.shore-legend .sw.hollow { background: transparent; box-shadow: 0 0 0 1.5px #cfd8ff inset; }
+
+.tooltip.shore-wide { max-width: 320px; }
+
+.shore-foot {
+  flex: none; margin: 0; padding: 6px 16px 9px;
+  font-size: 11px; line-height: 1.55; color: var(--text-faint);
+  background: var(--bg);
+}

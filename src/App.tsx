@@ -4,6 +4,7 @@ import { TEMP_BANDS, band, worldsToCsv, downloadText, type BandLabel } from './l
 import DiscoveryMap from './components/DiscoveryMap';
 import DataTable, { type Key } from './components/DataTable';
 import Charts from './components/Charts';
+import Shoreline from './components/Shoreline';
 import ThousandWorlds from './components/ThousandWorlds';
 import ImagineLab from './components/ImagineLab';
 import Sidebar, { ANY_DIST, type Filters, type PresetKey } from './components/Sidebar';
@@ -72,7 +73,7 @@ function decodeState(search: string, meta: Meta): Omit<UrlState, 'filters'> & { 
   };
   return {
     filters,
-    view: (['map', 'table', 'charts'].includes(p.get('view') ?? '') ? p.get('view') : 'map') as View,
+    view: (['map', 'table', 'charts', 'shoreline'].includes(p.get('view') ?? '') ? p.get('view') : 'map') as View,
     preset: (p.get('preset') as PresetKey) ?? 'all',
     sortKey: (p.get('sort') as Key) ?? 'dist_ly',
     dir: p.get('dir') === '-1' ? -1 : 1,
@@ -257,6 +258,7 @@ export default function App() {
           {view === 'map' && <DiscoveryMap all={worlds} filtered={filtered} selected={selected} onSelect={setSelected} />}
           {view === 'table' && <DataTable worlds={filtered} selected={selected} onSelect={setSelected} sortKey={sortKey} dir={dir} onSort={onSort} />}
           {view === 'charts' && <Charts worlds={filtered} />}
+          {view === 'shoreline' && <Shoreline worlds={worlds} onSelect={setSelected} selected={selected} />}
         </div>
         <DetailPanel world={selected} onOpenLab={() => setDataset('lab')} />
       </div>
