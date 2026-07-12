@@ -18,6 +18,7 @@ import AdminDashboard from './components/AdminDashboard';
 import CreationsViews from './components/CreationsViews';
 import MobileNotice from './components/MobileNotice';
 import { resolveStop, randomWorld, TOUR } from './lib/tour';
+import { worldOfTheDay } from './lib/wotd';
 import { logEvent } from './lib/supabase';
 import { APP_VERSION } from './lib/version';
 
@@ -153,6 +154,18 @@ export default function App() {
         setWorlds(w); setMeta(m); setFilters(s.filters); setView(s.view);
         setActivePreset(s.preset); setSortKey(s.sortKey); setDir(s.dir);
         if (s.selectedName) setSelected(w.find((x) => x.name === s.selectedName) ?? null);
+        // ?wotd deep link ('' = today, or YYYY-MM-DD): resolve via the build-time
+        // schedule; quietly no-op when the name drifted out of the catalog.
+        const wotd = new URLSearchParams(window.location.search).get('wotd');
+        if (wotd !== null) {
+          worldOfTheDay(wotd || undefined).then((d) => {
+            if (!d) return;
+            const world = w.find((x) => x.name === d.name);
+            if (!world) return; // dataset drift — schedule can name a world the catalog dropped
+            setSelected(world);
+            logEvent('wotd', { date: d.date });
+          });
+        }
       });
   }, []);
 
@@ -198,6 +211,14 @@ export default function App() {
   const startTour = () => { localStorage.setItem('nasa_tour_taken', '1'); setTourTaken(true); setFilters(defaultFilters(meta)); setActivePreset('all'); setNavOpen(false); gotoStop(0); };
   const nextStop = () => { if (tourStop == null) return; if (tourStop >= TOUR.length - 1) setTourStop(null); else gotoStop(tourStop + 1); };
   const surprise = () => { setTourStop(null); setSelected(randomWorld(worlds)); setView('map'); setNavOpen(false); };
+  const wotdPick = () => {
+    worldOfTheDay().then((d) => {
+      const world = d && worlds.find((x) => x.name === d.name);
+      if (!d || !world) return; // schedule missing today, or name not in catalog
+      setTourStop(null); setSelected(world); setView('map'); setNavOpen(false);
+      logEvent('wotd', { date: d.date, via: 'button' });
+    });
+  };
   const update = (p: Partial<Filters>) => { setFilters((f) => ({ ...f!, ...p })); setActivePreset(null); };
   const reset = () => { setFilters(defaultFilters(meta)); setActivePreset('all'); setNavOpen(false); };
   const applyPreset = (k: PresetKey) => {
@@ -246,7 +267,7 @@ export default function App() {
           filters={filters} update={update} meta={meta}
           bandCounts={bandCounts} methodCounts={methodCounts}
           activePreset={activePreset} onPreset={applyPreset} onReset={reset}
-          onTour={startTour} onSurprise={surprise} open={navOpen} tourPulse={!tourTaken}
+          onTour={startTour} onSurprise={surprise} onWotd={wotdPick} open={navOpen} tourPulse={!tourTaken}
         />
         <div className="center">
           <StatBar

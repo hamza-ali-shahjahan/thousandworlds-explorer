@@ -40,11 +40,12 @@ interface Props {
   onReset: () => void;
   onTour: () => void;
   onSurprise: () => void;
+  onWotd?: () => void;
   open: boolean;
   tourPulse?: boolean;
 }
 
-export default function Sidebar({ filters, update, meta, bandCounts, methodCounts, activePreset, onPreset, onReset, onTour, onSurprise, open, tourPulse }: Props) {
+export default function Sidebar({ filters, update, meta, bandCounts, methodCounts, activePreset, onPreset, onReset, onTour, onSurprise, onWotd, open, tourPulse }: Props) {
   const toggle = <T,>(set: Set<T>, v: T): Set<T> => {
     const s = new Set(set); s.has(v) ? s.delete(v) : s.add(v); return s;
   };
@@ -63,6 +64,14 @@ export default function Sidebar({ filters, update, meta, bandCounts, methodCount
           </svg>
           Surprise me
         </button>
+        {onWotd && (
+          <button className="cta ghost" onClick={onWotd}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /><circle cx="12" cy="15.5" r="1.4" fill="currentColor" stroke="none" />
+            </svg>
+            World of the day
+          </button>
+        )}
       </div>
 
       <div className="section-label">Quick views</div>
