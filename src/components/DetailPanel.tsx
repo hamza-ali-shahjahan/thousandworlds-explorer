@@ -4,6 +4,8 @@ import { tempColor, band, sizeClass, describe, n, kToC, yearLength } from '../li
 import Term from './Term';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import { PcaGbtEmulator } from '../lib/emulator';
+import { downloadPostcard } from '../lib/postcard';
+import { logEvent } from '../lib/supabase';
 import { oodAssess, type OodAssessment } from '../lib/ood';
 import { loadSims, type SimCatalog } from '../lib/simcatalog';
 import type { BuildParams } from '../lib/emuConstants';
@@ -253,6 +255,18 @@ function ModeledPortrait({ world, onOpenLab }: { world: World; onOpenLab?: () =>
                 global mean ≈ {Math.round(portrait.meanK)} K ({kToC(portrait.meanK)}) · {REGIMES[ri].label}
               </span>
               <OodChip assess={portrait.ood} />
+              <button
+                className="dp-postcard"
+                title="Download this modeled world as a travel-poster postcard (PNG)"
+                onClick={() => {
+                  logEvent('postcard', { name: w.name });
+                  void downloadPostcard({
+                    name: w.name, field: portrait.field, grid: portrait.grid, kRange: portrait.kRange,
+                    meanK: portrait.meanK, dist_ly: w.dist_ly, radius: w.radius,
+                    blurbLine: `a ${REGIMES[ri].label} world — under an assumed Earth-like atmosphere`,
+                  });
+                }}
+              >postcard <span aria-hidden="true">↓</span></button>
             </div>
             <p className="dp-honest">
               <b>Physically modeled from GCM emulation — not an artist&rsquo;s concept, not an observation.</b>{' '}
