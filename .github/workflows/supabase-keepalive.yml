@@ -3,9 +3,14 @@
 # This ping issues one trivial REST query twice a week to keep the project warm.
 #
 # Needs two repo secrets (values from your .env.local — the anon key is the
-# public client key, not a private secret, but we keep it out of the repo):
-#   SUPABASE_URL       e.g. https://<project-ref>.supabase.co
-#   SUPABASE_ANON_KEY  the anon/public API key
+# public client key, not a private secret, but we keep it out of the repo).
+# Note the names drop the VITE_ prefix that .env.local uses:
+#   SUPABASE_URL       <- VITE_SUPABASE_URL       e.g. https://<project-ref>.supabase.co
+#   SUPABASE_ANON_KEY  <- VITE_SUPABASE_ANON_KEY  the anon/public API key
+#
+# Set them without the values passing through your clipboard:
+#   gh secret set SUPABASE_URL --body "$(grep '^VITE_SUPABASE_URL=' .env.local | cut -d= -f2-)"
+#   gh secret set SUPABASE_ANON_KEY --body "$(grep '^VITE_SUPABASE_ANON_KEY=' .env.local | cut -d= -f2-)"
 name: Supabase keep-alive
 
 on:
