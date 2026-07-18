@@ -1,0 +1,31 @@
+/* SignInDoor — the Explorer's front gate. Inherits the modal shell (.modal*)
+   and .btn/.btn.primary from styles.css; everything door-* is defined here.
+   Calm palette, no urgency styling. */
+
+.door-wall { background: rgba(4, 7, 16, 0.86); }
+
+.door { width: min(400px, 100%); margin: 0 auto; font-size: 13.5px; line-height: 1.55; color: var(--text-dim); }
+.door b { color: var(--text); font-weight: 500; }
+.door-lead { margin: 0 0 12px; }
+
+.door-props { list-style: none; margin: 0 0 16px; padding: 10px 12px; display: grid; gap: 8px; background: var(--bg-elev); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); }
+.door-props li { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; }
+.door-props svg { flex: none; margin-top: 2px; color: var(--accent); }
+
+.door-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid #dadce0; background: #fff; color: #1f1f1f; font-size: 14px; font-weight: 500; }
+.door-google:hover { background: #f6f8ff; }
+.door-google:disabled { opacity: 0.6; cursor: default; }
+
+.door-or { display: flex; align-items: center; gap: 12px; margin: 12px 0; color: var(--text-faint); font-size: 11.5px; }
+.door-or::before, .door-or::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
+
+.door-input { width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; font-size: 14px; }
+.door-input:focus { outline: none; border-color: var(--accent); }
+.door-wide { width: 100%; margin-top: 10px; }
+.door-err { margin: 8px 0 0; font-size: 12.5px; color: #e2685a; }
+.door-note { margin: 4px 0 0; font-size: 12.5px; color: var(--text-dim); background: var(--bg-elev); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); padding: 10px 12px; }
+
+/* "← Back" closes the door and returns to the landing beneath — never past the gate. */
+.door-foot { display: flex; justify-content: center; margin-top: 14px; }
+.door-back { background: none; border: none; padding: 0; font: inherit; font-size: 12.5px; color: var(--text-faint); cursor: pointer; border-bottom: 1px dotted rgba(141, 153, 176, 0.5); }
+.door-back:hover { color: var(--text); border-bottom-color: var(--text); }

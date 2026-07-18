@@ -1,0 +1,72 @@
+/* Landing — the public front door. Reuses the app's tokens (--bg, --accent,
+   --radius…) and the global .btn.primary / .sitefoot styles; everything here is
+   layout + landing-only typography. The body stays overflow:hidden for the
+   pinned console shell, so .landing owns its own viewport-height scroll. */
+
+.landing { height: 100vh; overflow-y: auto; scrollbar-gutter: stable; display: flex; flex-direction: column; }
+.landing::-webkit-scrollbar { width: 10px; }
+.landing::-webkit-scrollbar-thumb { background: #2a3450; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+.landing::-webkit-scrollbar-thumb:hover { background: #3a4763; background-clip: padding-box; }
+.landing-inner { width: 100%; max-width: 1060px; margin: 0 auto; padding: 0 22px; flex: 1 0 auto; }
+
+/* ------------------------------------------------------------------- hero */
+.l-hero { text-align: center; padding: 74px 0 46px; }
+.l-kicker { margin: 0 0 14px; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); }
+/* Brand form of the kicker — mirrors the topbar wordmark (accent "Thousand", dim "Explorer"). */
+.l-brand { font-size: 17px; text-transform: none; letter-spacing: 0.3px; color: var(--text); font-weight: 500; }
+.l-brand b { color: var(--accent); font-weight: 500; }
+.l-brand-x { color: var(--text-dim); }
+.l-h1 { margin: 0 auto; max-width: 720px; font-size: clamp(28px, 4.6vw, 44px); font-weight: 600; line-height: 1.14; letter-spacing: -0.01em; color: var(--text); }
+.l-sub { margin: 18px auto 0; max-width: 620px; font-size: 15.5px; line-height: 1.6; color: var(--text-dim); }
+.l-cta { margin-top: 28px; padding: 13px 30px; font-size: 16.5px; border-radius: 10px; box-shadow: 0 8px 30px rgba(127, 178, 255, 0.22); }
+.l-free { margin: 10px 0 0; font-size: 12.5px; color: var(--text-faint); }
+
+/* ---------------------------------------------------------------- gallery */
+.l-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 18px; padding: 6px 0 8px; }
+.shot { margin: 0; min-width: 0; }
+/* Fixed aspect frame so the grid never jumps while images lazy-load — and a
+   quiet starfield-ish panel remains if a shot 404s. */
+.shot-frame {
+  aspect-ratio: 16 / 10; display: grid; place-items: center; overflow: hidden;
+  border: 1px solid var(--border-soft); border-radius: var(--radius);
+  background:
+    radial-gradient(420px 260px at 72% 8%, #15224066 0%, transparent 60%),
+    var(--bg-panel);
+}
+.shot-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shot-alt { padding: 0 24px; font-size: 12.5px; text-align: center; line-height: 1.5; color: var(--text-faint); }
+.shot-cap { margin-top: 8px; font-size: 12.5px; line-height: 1.5; color: var(--text-dim); }
+
+/* --------------------------------------------------------- credibility strip */
+.l-cred {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 26px;
+  margin: 20px auto 0; max-width: 760px; padding: 11px 18px; font-size: 12.5px; line-height: 1.5;
+  color: var(--text-dim); background: var(--bg-panel);
+  border: 1px solid var(--border-soft); border-radius: var(--radius);
+}
+.l-cred-item { position: relative; white-space: nowrap; }
+.l-cred-item + .l-cred-item::before { content: '·'; position: absolute; left: -16px; color: var(--text-faint); }
+a.l-cred-item { color: var(--accent); }
+a.l-cred-item:hover { text-decoration: underline; }
+@media (max-width: 760px) {
+  .l-cred { flex-direction: column; gap: 6px; }
+  .l-cred-item { white-space: normal; text-align: center; }
+  .l-cred-item + .l-cred-item::before { content: none; }
+}
+
+/* ---------------------------------------------------- value-prop footnote */
+.l-note { margin: 22px auto 56px; max-width: 560px; text-align: center; font-size: 12.5px; line-height: 1.55; color: var(--text-faint); }
+
+/* ------------------------------------------------------------------ footer */
+/* Inherits .sitefoot from styles.css; here it just sits after the scroll content. */
+.l-foot { flex: none; }
+
+@media (max-width: 760px) {
+  .l-hero { padding: 52px 0 38px; }
+  .l-gallery { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing { scroll-behavior: auto; }
+  .landing .btn { transition: none; }
+  .landing .btn:active { transform: none; }
+}
