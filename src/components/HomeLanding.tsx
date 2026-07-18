@@ -69,10 +69,17 @@ export default function HomeLanding({ onLaunch }: { onLaunch: () => void }) {
       </main>
 
       <footer className="sitefoot l-foot">
-        Built with <span className="foot-heart" aria-label="love">❤️</span> using{' '}
-        <a href="https://github.com/hamza-ali-shahjahan/hamzaish" target="_blank" rel="noreferrer">/hamzaish</a>
-        {' · '}
-        <a href="https://github.com/hamza-ali-shahjahan/thousandworlds-explorer" target="_blank" rel="noreferrer">open source</a>
+        <span>
+          Built with <span className="foot-heart" aria-label="love">❤️</span> using{' '}
+          <a href="https://github.com/hamza-ali-shahjahan/hamzaish" target="_blank" rel="noreferrer">/hamzaish</a>
+          {' · '}
+          <a href="https://github.com/hamza-ali-shahjahan/thousandworlds-explorer" target="_blank" rel="noreferrer">open source</a>
+        </span>
+        <span className="l-legal">
+          <a href="/privacy">Privacy policy</a>
+          {' · '}
+          <a href="/terms">Terms</a>
+        </span>
       </footer>
     </div>
   );

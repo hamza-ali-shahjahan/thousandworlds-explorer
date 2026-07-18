@@ -58,8 +58,13 @@ a.l-cred-item:hover { text-decoration: underline; }
 .l-note { margin: 22px auto 56px; max-width: 560px; text-align: center; font-size: 12.5px; line-height: 1.55; color: var(--text-faint); }
 
 /* ------------------------------------------------------------------ footer */
-/* Inherits .sitefoot from styles.css; here it just sits after the scroll content. */
-.l-foot { flex: none; }
+/* Inherits .sitefoot from styles.css; laid out as a row so the legal links sit
+   at the far right (Google OAuth verification wants them visible on the home page). */
+.l-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-left: 22px; padding-right: 22px; }
+.l-legal { white-space: nowrap; }
+@media (max-width: 560px) {
+  .l-foot { flex-direction: column; gap: 4px; }
+}
 
 @media (max-width: 760px) {
   .l-hero { padding: 52px 0 38px; }
