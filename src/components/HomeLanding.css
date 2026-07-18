@@ -61,9 +61,13 @@ a.l-cred-item:hover { text-decoration: underline; }
 /* Inherits .sitefoot from styles.css; laid out as a row so the legal links sit
    at the far right (Google OAuth verification wants them visible on the home page). */
 .l-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-left: 22px; padding-right: 22px; }
-.l-legal { white-space: nowrap; }
+/* Equal-width sides keep the credit truly centered; legal stays far right. */
+.l-foot-side { flex: 1; text-align: left; white-space: nowrap; }
+.l-foot-mid { flex: none; }
+.l-legal { text-align: right; }
 @media (max-width: 560px) {
   .l-foot { flex-direction: column; gap: 4px; }
+  .l-foot-side, .l-legal { text-align: center; }
 }
 
 @media (max-width: 760px) {
