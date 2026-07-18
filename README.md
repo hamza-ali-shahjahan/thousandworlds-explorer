@@ -133,9 +133,9 @@ The hosted site has **optional accounts** (magic link or Google) for saving and 
 findings you make — browsing needs no account at all. Self-hosted copies run fully anonymously with no
 keys; to enable accounts on your own copy see [docs/accounts-setup.md](docs/accounts-setup.md).
 
-Usage measurement is **first-party and anonymous only** (a pageview, tab switches, client errors — no
-IP, no fingerprint, no third-party trackers, Do-Not-Track respected). Details:
-[privacy](https://thousandworldsexplorer.com/privacy) · [terms](https://thousandworldsexplorer.com/terms).
+Usage measurement: **anonymous first-party events** (a pageview, tab switches, client errors — no
+IP, no fingerprint, Do-Not-Track respected) plus **Google Analytics** for aggregate statistics.
+Details: [privacy](https://thousandworldsexplorer.com/privacy) · [terms](https://thousandworldsexplorer.com/terms).
 
 ## Refresh the data
 
