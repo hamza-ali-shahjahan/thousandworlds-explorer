@@ -58,7 +58,7 @@ export default function HomeLanding({ onLaunch }: { onLaunch: () => void }) {
           <button className="btn primary l-cta" type="button" onClick={onLaunch}>
             Launch the explorer →
           </button>
-          <p className="l-free">Free account — Google or a magic link, twenty seconds.</p>
+          <p className="l-free">Free account — Google or a magic link</p>
         </section>
 
         <section className="l-gallery" aria-label="What you'll see inside">
