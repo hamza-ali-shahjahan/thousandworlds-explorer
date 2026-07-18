@@ -32,7 +32,16 @@ function CreationCard({ c, mine, onChange }: { c: Creation; mine?: boolean; onCh
       <div className="cc-head"><span className="cc-type">{c.type}</span>{c.is_public && <span className="cc-pub">🌍 public</span>}</div>
       <div className="cc-title">{c.title || 'Untitled'}</div>
 
-      {c.type === 'world' && p?.prediction && (
+      {c.type === 'world' && p?.app === 'emulator' && (
+        // Saved from the climate emulator — a different payload shape ({app,
+        // params, gcmIndex, model, url}); render tag + permalink, never crash.
+        <div className="cc-body">
+          <span className="cc-badge" style={{ color: '#cdb6ff' }}>Emulator world</span>
+          {typeof p.model === 'string' && <span className="cc-dim">model {p.model}</span>}
+          {typeof p.url === 'string' && <a className="linkbtn" href={p.url}>open in emulator →</a>}
+        </div>
+      )}
+      {c.type === 'world' && p?.app !== 'emulator' && p?.prediction && (
         <div className="cc-body">
           <span className="cc-badge" style={{ color: REG_COLOR[p.prediction.reg] || 'var(--text)' }}>{p.prediction.reg}</span>
           <span>Predicted surface ≈ <b>{Math.round(p.prediction.mean)} K</b> ({kToC(p.prediction.mean)})</span>
