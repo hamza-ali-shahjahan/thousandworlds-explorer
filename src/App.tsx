@@ -145,7 +145,7 @@ export default function App() {
   // The front gate: anonymous visitors see the landing; its CTA raises the
   // non-dismissible sign-in door; a session opens the three tabs. DEV-only
   // ?shot= bypasses for screenshot capture.
-  const { loading: authLoading, user, isAdmin } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const [door, setDoor] = useState(false);
   const devBypass = import.meta.env.DEV && new URLSearchParams(window.location.search).has('shot');
 
@@ -278,13 +278,12 @@ export default function App() {
           <button className={dataset === 'lab' ? 'on' : ''} role="tab" aria-selected={dataset === 'lab'} onClick={() => setDataset('lab')}>Imagine · Lab</button>
         </div>
         <div className="tb-right">
-          {/* Admin-only until the benchmark authors approve going public. */}
-          {isAdmin && (
-            <a className="emulator-tab" href="/emulator" title="Climate emulator (private preview) — design a world from 8 dials, watch its climate predicted live">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-              Emulator
-            </a>
-          )}
+          {/* Public (owner-approved 2026-07-18): everyone in the app is signed in, so the pill always shows. */}
+          <a className="emulator-tab" href="/emulator" title="Climate emulator — design a world from 8 dials, watch its climate predicted live">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 9.4-2.4" /></svg>
+            Emulator
+            <span className="emulator-new">new</span>
+          </a>
           <span className="src">{dataset === 'nasa' ? `NASA Exoplanet Archive · ${meta.total.toLocaleString()} worlds` : dataset === 'lab' ? 'Imagine Lab · overlay real + simulated · honest hypotheses' : 'ThousandWorlds benchmark · 1,659 climates · CC-BY-4.0'}</span>
           <AuthMenu />
         </div>
