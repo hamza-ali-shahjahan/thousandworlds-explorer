@@ -245,8 +245,16 @@ function DetailTw({ world, siblings, surf, field, row, onDive }: {
         <div className="metric"><div className="k">Cloud cover</div><div className="v">{Math.round(w.cloud * 100)}<span className="u">%</span></div></div>
       </div>
       {field && surf && row != null && (
-        <button className="surfacelure" onClick={(e) => onDive(e.currentTarget.getBoundingClientRect(), row)} aria-label="Open this world’s surface climate map">
-          <div className="section-label" style={{ marginBottom: 6 }}>Surface climate <span className="lurecue">⤢ dive in</span></div>
+        <button
+          className="surfacelure"
+          onClick={(e) => {
+            try { localStorage.setItem('tw_dived', '1'); } catch { /* private mode */ }
+            onDive(e.currentTarget.getBoundingClientRect(), row);
+          }}
+          aria-label="Open this world’s surface climate map"
+        >
+          {/* The cue pulses until the user has dived once — then it's learned. */}
+          <div className="section-label" style={{ marginBottom: 6 }}>Surface climate <span className={`lurecue${localStorage.getItem('tw_dived') === '1' ? '' : ' pulse-cue'}`}>⤢ dive in</span></div>
           <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="thumb" />
           <span className="lurehint">The temperature across this world — hottest toward its star, coldest on the far side. Tap to enlarge.</span>
         </button>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Modal from './Modal';
 import SaveShareBar from './SaveShareBar';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
+import ProjectedField from './ProjectedField';
 import './BuildAWorld.css';
 import type { TwWorld } from './ThousandWorlds';
 import type { World } from '../types';
@@ -142,6 +143,12 @@ export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, o
   onMeet: (w: World) => void; onAddToMap?: (b: BuiltWorld) => void; onClose: () => void;
 }) {
   const [p, setP] = useState<BuildParams>(PRESETS[0].p);
+  // Projection for the predicted map — shares the hero's remembered preference.
+  const [mapView, setMapView] = useState<'flat' | 'robinson' | 'globe'>(() => {
+    const v = localStorage.getItem('tw_hero_view');
+    return v === 'robinson' || v === 'globe' ? v : 'flat';
+  });
+  const pickMapView = (v: 'flat' | 'robinson' | 'globe') => { setMapView(v); try { localStorage.setItem('tw_hero_view', v); } catch { /* private mode */ } };
   const [name, setName] = useState<string>(randomName);
   const [copied, setCopied] = useState(false);
   const [shareCard, setShareCard] = useState<string | null>(null);
@@ -247,7 +254,21 @@ ${pred.source === 'pca-gbt'
         <div className="bw-result">
           {pred ? (
             <>
-              <SurfaceMap data={pred.field} row={0} grid={field.grid} kRange={field.kRange} size="hero" />
+              <div className="lenstoggle bw-viewtoggle" role="tablist" aria-label="Projection">
+                {(['flat', 'robinson', 'globe'] as const).map((v) => (
+                  <button key={v} role="tab" aria-selected={mapView === v} className={mapView === v ? 'on' : ''} onClick={() => pickMapView(v)}>
+                    {v === 'flat' ? 'Flat' : v === 'robinson' ? 'Robinson' : 'Globe'}
+                  </button>
+                ))}
+              </div>
+              {mapView !== 'flat' ? (
+                <ProjectedField data={pred.field} row={0} grid={field.grid} kRange={field.kRange} view={mapView} size="hero" />
+              ) : (
+                <SurfaceMap data={pred.field} row={0} grid={field.grid} kRange={field.kRange} size="hero" />
+              )}
+              {mapView === 'globe' && (
+                <div className="projfield-caption">drag to spin · ● substellar / ○ antistellar · dashed = terminator</div>
+              )}
               <div className="bw-readout">
                 <span className="bw-badge" style={{ color: col, borderColor: col }}>{pred.reg}</span>
                 <span className="bw-temp">Predicted surface ≈ <b style={{ color: col }}>{Math.round(pred.mean)} K ({kToC(pred.mean)})</b></span>
