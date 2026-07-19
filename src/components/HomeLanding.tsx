@@ -12,9 +12,6 @@ import './HomeLanding.css';
 const SHOTS: { file: string; caption: string }[] = [
   { file: 'portrait.jpg', caption: 'Physically modeled portraits of real worlds — not artist’s concepts' },
   { file: 'simulated.jpg', caption: '1,659 simulated climates across five global climate models' },
-  { file: 'emulator-console.jpg', caption: 'The climate emulator: eight dials in, a planet’s climate out · research preview' },
-  { file: 'emulator-globe.jpg', caption: 'A rotating globe with day–night terminator · research preview' },
-  { file: 'emulator-validation.jpg', caption: 'Prove it: emulator vs climate-model truth, error mapped · research preview' },
   { file: 'shoreline.jpg', caption: 'The cosmic shoreline — which worlds keep their air, with JWST verdicts' },
   { file: 'lab.jpg', caption: 'Imagine a world — an honest, physics-grounded lab' },
   { file: 'charts.jpg', caption: 'Charts, tables, CSV — a serious analysis tool underneath' },
@@ -58,7 +55,7 @@ export default function HomeLanding({ onLaunch }: { onLaunch: () => void }) {
           <button className="btn primary l-cta" type="button" onClick={onLaunch}>
             Launch the explorer →
           </button>
-          <p className="l-free">Free account — Google or a magic link</p>
+          <p className="l-free">Free to explore — sign in only to save or download.</p>
         </section>
 
         <section className="l-gallery" aria-label="What you'll see inside">

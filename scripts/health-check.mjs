@@ -37,11 +37,11 @@ await check('root serves the Explorer shell', async () => {
   if (!rootHtml.includes('<title>ThousandWorlds Explorer')) throw new Error('title missing');
   if (!rootHtml.includes('og:image')) throw new Error('og tags missing');
 });
-await check('app bundle loads and carries the landing + door', async () => {
+await check('app bundle loads and carries the landing + app', async () => {
   const m = rootHtml.match(/assets\/index-[^"]+\.js/);
   if (!m) throw new Error('no bundle reference in HTML');
   const js = await get(`/${m[0]}`);
-  for (const marker of ['Launch the explorer', 'Sign in to explore', 'Continue with Google']) {
+  for (const marker of ['Launch the explorer', 'Save to my Lab']) {
     if (!js.includes(marker)) throw new Error(`bundle missing "${marker}"`);
   }
 });
@@ -79,12 +79,10 @@ await check('emulator serves through the proxy', async () => {
   emuHtml = await get('/emulator/');
   if (!emuHtml.includes('assets/index-')) throw new Error('no bundle reference');
 });
-await check('emulator bundle carries its landing + door', async () => {
+await check('emulator bundle carries the private-preview gate', async () => {
   const m = emuHtml.match(/assets\/index-[^"]+\.js/);
   const js = await get(`/emulator/${m[0]}`);
-  for (const marker of ['Launch the emulator', 'Sign in to enter the emulator']) {
-    if (!js.includes(marker)) throw new Error(`bundle missing "${marker}"`);
-  }
+  if (!js.includes('private preview')) throw new Error('bundle missing the private-preview gate');
 });
 await check('emulator weights + registry serve', async () => {
   const models = await get('/emulator/models.json', 'json');
