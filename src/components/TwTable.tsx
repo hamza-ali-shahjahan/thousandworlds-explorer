@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TwWorld } from './ThousandWorlds';
 
-// shared surface-temp colormap (matches the Simulated tab / SurfaceMap)
+// categorical dot palette (matches the Simulated tab dots; surface MAPS use the
+// continuous ramp in lib/climate.ts, anchored on these same hues)
 function tColor(t: number): string {
   if (t < 240) return '#6fa8ff';
   if (t < 273) return '#7fcfe6';

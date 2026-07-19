@@ -31,8 +31,9 @@ const PORTRAIT_CO2_PCT = 0.04;         // …at 400 ppm CO₂ (modern Earth)
 const SWEEP_P0 = [0.3, 1, 3, 10];      // bar   — the plausible-climates grid
 const SWEEP_CO2 = [0.01, 0.1, 1, 5];   // percent
 
-// Regime bands for the sweep strip (same thresholds + colors as the shared
-// climate colormap in SurfaceMap/BuildAWorld: frozen→cold→temperate→hot→scorching).
+// Regime bands for the sweep strip — same band edges as regime() and the scatter
+// dots; these five hues are the ANCHORS of the continuous climate ramp
+// (lib/climate.ts) that SurfaceMap/BuildAWorld draw maps with.
 const REGIMES = [
   { label: 'frozen', color: '#6fa8ff' },     // < 240 K
   { label: 'cold', color: '#7fcfe6' },       // 240–273
@@ -146,7 +147,7 @@ async function computeSweep(base: BuildParams, core: Core, emu: PcaGbtEmulator):
       const p: BuildParams = { ...base, pressure, co2 };
       if (oodAssess(p, core.cat.sims).state === 'out') { dropped++; continue; }
       const pred = await emu.predict(p, core.field, core.ranges);
-      counts[regimeIdx(areaMeanK(pred.field, core.field.grid, core.field.kRange))]++;
+      counts[regimeIdx(areaMeanK(pred.field, core.field.grid, pred.kRange))]++;
       total++;
     }
   }
@@ -155,7 +156,7 @@ async function computeSweep(base: BuildParams, core: Core, emu: PcaGbtEmulator):
   let lo = Infinity, hi = -Infinity;
   for (let g = 0; g < GCM_LABELS.length; g++) {
     const pred = await emu.predict(base, core.field, core.ranges, g);
-    const m = areaMeanK(pred.field, core.field.grid, core.field.kRange);
+    const m = areaMeanK(pred.field, core.field.grid, pred.kRange);
     if (m < lo) lo = m;
     if (m > hi) hi = m;
   }
@@ -209,8 +210,8 @@ function ModeledPortrait({ world, onOpenLab }: { world: World; onOpenLab?: () =>
         const pred = await emu.predict(p, core.field, core.ranges);
         const st: PortraitState = {
           kind: 'ready', ood, field: pred.field,
-          meanK: areaMeanK(pred.field, core.field.grid, core.field.kRange),
-          grid: core.field.grid, kRange: core.field.kRange,
+          meanK: areaMeanK(pred.field, core.field.grid, pred.kRange),
+          grid: core.field.grid, kRange: pred.kRange,   // the prediction's own packing range
         };
         cachePut(key, { portrait: st, sweep: null });
         if (live) setPortrait(st);
