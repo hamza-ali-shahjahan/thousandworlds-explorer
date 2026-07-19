@@ -26,6 +26,7 @@
   will-change: transform, opacity;
 }
 .surfacehero-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.surfacehero-tools { display: inline-flex; align-items: center; gap: 10px; flex: none; }
 .surfacehero-head h2 { font-size: 18px; font-weight: 500; }
 .surfacehero-sub { font-size: 12.5px; color: var(--text-dim); margin-top: 4px; line-height: 1.5; }
 .surfacehero .surfacemap.hero { border-radius: var(--radius-sm); border: 1px solid var(--border-soft); }
