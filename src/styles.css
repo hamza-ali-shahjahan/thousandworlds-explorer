@@ -55,7 +55,8 @@ button { font-family: inherit; cursor: pointer; }
   background: linear-gradient(180deg, #0c1122, var(--bg));
 }
 .tb-left { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
-.topbar .brand { display: inline-flex; align-items: center; gap: 9px; font-size: 19px; letter-spacing: 0.3px; white-space: nowrap; }
+.topbar .brand { display: inline-flex; align-items: center; gap: 9px; font-size: 19px; letter-spacing: 0.3px; white-space: nowrap; color: var(--text); text-decoration: none; }
+a.brand:hover .brand-wm { opacity: 0.85; }
 .topbar .brand-mark { width: 26px; height: 26px; flex: none; }
 .topbar .brand b { color: var(--accent); font-weight: 500; }
 .topbar .brand-explorer { color: var(--text-dim); }
