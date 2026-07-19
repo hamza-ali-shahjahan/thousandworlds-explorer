@@ -4,6 +4,7 @@ import Term from './Term';
 import Tour from './Tour';
 import Modal from './Modal';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
+import ProjectedField from './ProjectedField';
 import TwTable from './TwTable';
 import TwCharts from './TwCharts';
 import { n, dotRadius, downloadText, fetchBinary } from '../lib/util';
@@ -281,10 +282,19 @@ function DetailTw({ world, siblings, surf, field, row, onDive }: {
 
 // The "dive into the dot" hero: the surface map blooms FLIP-style from the thumbnail's rect
 // to a centered card, then closes back to the scatter (selection intact). Reduced-motion safe.
+// Flat (the untouched bloom view) is the default; Robinson/Globe swap in <ProjectedField>.
+type HeroView = 'flat' | 'robinson' | 'globe';
+const HERO_VIEWS: [HeroView, string][] = [['flat', 'Flat'], ['robinson', 'Robinson'], ['globe', 'Globe']];
 function SurfaceHero({ surf, field, row, world, originRect, onClose }: {
   surf: Uint8Array | null; field: FieldMeta; row: number; world: TwWorld; originRect: DOMRect; onClose: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  // Projection choice sticks across worlds and sessions.
+  const [view, setView] = useState<HeroView>(() => {
+    const v = localStorage.getItem('tw_hero_view');
+    return v === 'robinson' || v === 'globe' ? v : 'flat';
+  });
+  const pickView = (v: HeroView) => { setView(v); localStorage.setItem('tw_hero_view', v); };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -314,11 +324,25 @@ function SurfaceHero({ surf, field, row, world, originRect, onClose }: {
             <h2>{nickname(world)} · surface climate</h2>
             <div className="surfacehero-sub">Simulation #{world.sid} · {regime(world.tsurf)} · global mean {Math.round(world.tsurf)} K ({kToC(world.tsurf)}) · model: {world.gcm}</div>
           </div>
-          <button className="modal-x" onClick={onClose} aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-          </button>
+          <div className="surfacehero-tools">
+            <div className="lenstoggle" role="tablist" aria-label="Projection">
+              {HERO_VIEWS.map(([v, label]) => (
+                <button key={v} role="tab" aria-selected={view === v} className={view === v ? 'on' : ''} onClick={() => pickView(v)}>{label}</button>
+              ))}
+            </div>
+            <button className="modal-x" onClick={onClose} aria-label="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </div>
         </div>
-        <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="hero" />
+        {view !== 'flat' && surf ? (
+          <ProjectedField data={surf} row={row} grid={field.grid} kRange={field.kRange} view={view} size="hero" />
+        ) : (
+          <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="hero" />
+        )}
+        {view === 'globe' && surf && (
+          <div className="projfield-caption">drag to spin · ● substellar / ○ antistellar · dashed = terminator (day–night divide)</div>
+        )}
         <div className="surfacehero-foot">
           <span className="surfacehero-scale"><i>colder</i><span className="ramp" /><i>hotter</i></span>
           <span className="surfacehero-note">Simulated surface temperature across the globe — longitude →, latitude ↑ — on the same color scale as the dots.</span>
