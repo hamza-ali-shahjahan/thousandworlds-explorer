@@ -1,4 +1,5 @@
 import { kToC, n } from './util';
+import { climateRgb } from './climate';
 
 // "Postcard from your world" — composes a 1200×900 retro travel-poster PNG for
 // a planet's physically modeled portrait and triggers a download. The climate
@@ -9,15 +10,8 @@ import { kToC, n } from './util';
 
 const W = 1200, H = 900;
 
-// Local copy of the shared climate colormap (matches SurfaceMap.tsx tColor /
-// ThousandWorlds.tsx / ImagineLab.tsx): frozen → cold → temperate → hot → scorching.
-export function climateRgb(t: number): [number, number, number] {
-  if (t < 240) return [0x6f, 0xa8, 0xff];   // snowball
-  if (t < 273) return [0x7f, 0xcf, 0xe6];   // cold
-  if (t < 320) return [0x46, 0xd4, 0x9a];   // temperate (liquid-water band)
-  if (t < 373) return [0xf0, 0xb2, 0x4a];   // hot
-  return [0xe2, 0x4b, 0x4a];                // scorching / steam
-}
+// The climate colormap is the shared continuous ramp in lib/climate.ts
+// (imported above) — same hues as SurfaceMap and the projected views.
 
 // Cheeky-but-honest packing advice from the area-weighted global mean (same
 // band edges as the regime strip: 240 / 273 / 320 / 373 K).

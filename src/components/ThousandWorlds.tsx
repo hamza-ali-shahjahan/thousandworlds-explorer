@@ -8,6 +8,7 @@ import ProjectedField from './ProjectedField';
 import TwTable from './TwTable';
 import TwCharts from './TwCharts';
 import { n, dotRadius, downloadText, fetchBinary } from '../lib/util';
+import { useMapView } from '../lib/useMapView';
 
 // Plain-language decoder for the GCM (climate-model) codenames.
 const GCM_DESC: Record<string, string> = {
@@ -297,12 +298,8 @@ function SurfaceHero({ surf, field, row, world, originRect, onClose }: {
   surf: Uint8Array | null; field: FieldMeta; row: number; world: TwWorld; originRect: DOMRect; onClose: () => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  // Projection choice sticks across worlds and sessions.
-  const [view, setView] = useState<HeroView>(() => {
-    const v = localStorage.getItem('tw_hero_view');
-    return v === 'robinson' || v === 'globe' ? v : 'flat';
-  });
-  const pickView = (v: HeroView) => { setView(v); localStorage.setItem('tw_hero_view', v); };
+  // Projection choice sticks across worlds and sessions (site-wide synced preference).
+  const [view, pickView] = useMapView();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -353,7 +350,7 @@ function SurfaceHero({ surf, field, row, world, originRect, onClose }: {
         )}
         <div className="surfacehero-foot">
           <span className="surfacehero-scale"><i>colder</i><span className="ramp" /><i>hotter</i></span>
-          <span className="surfacehero-note">Simulated surface temperature across the globe — longitude →, latitude ↑ — on the same color scale as the dots.</span>
+          <span className="surfacehero-note">Simulated surface temperature across the globe — longitude →, latitude ↑ — a smooth colder→hotter ramp anchored to the dots&rsquo; climate colors.</span>
         </div>
       </div>
     </div>

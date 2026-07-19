@@ -3,6 +3,8 @@ import Modal from './Modal';
 import BuildAWorld, { type BuiltWorld } from './BuildAWorld';
 import FindingForge from './FindingForge';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
+import ProjectedField from './ProjectedField';
+import { useMapView } from '../lib/useMapView';
 import type { World } from '../types';
 import type { TwWorld } from './ThousandWorlds';
 import { n, dotRadius, fetchBinary } from '../lib/util';
@@ -513,6 +515,8 @@ function LabWorldCard({ sim, row, surf, field, onClose }: {
 }) {
   const reg = regime(sim.tsurf);
   const col = tColor(sim.tsurf);
+  // Projection for the card's map — the site-wide synced preference.
+  const [mapView, pickMapView] = useMapView();
   return (
     <aside className="labcard">
       <button className="labcard-x" onClick={onClose} aria-label="Close">×</button>
@@ -524,8 +528,23 @@ function LabWorldCard({ sim, row, surf, field, onClose }: {
       </p>
       {field && surf ? (
         <div className="labcard-map">
-          <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="thumb" />
-          <span className="labcard-maphint">Its surface temperature — hottest toward its star, coldest on the far side.</span>
+          <div className="lenstoggle labcard-viewtoggle" role="tablist" aria-label="Projection">
+            {(['flat', 'robinson', 'globe'] as const).map((v) => (
+              <button key={v} role="tab" aria-selected={mapView === v} className={mapView === v ? 'on' : ''} onClick={() => pickMapView(v)}>
+                {v === 'flat' ? 'Flat' : v === 'robinson' ? 'Robinson' : 'Globe'}
+              </button>
+            ))}
+          </div>
+          {mapView !== 'flat' ? (
+            <ProjectedField data={surf} row={row} grid={field.grid} kRange={field.kRange} view={mapView} size="thumb" />
+          ) : (
+            <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="thumb" />
+          )}
+          <span className="labcard-maphint">
+            {mapView === 'globe'
+              ? 'Drag to spin · ● substellar / ○ antistellar · dashed = terminator.'
+              : 'Its surface temperature — hottest toward its star, coldest on the far side.'}
+          </span>
         </div>
       ) : field ? (
         <div className="labcard-loading">Loading its surface map…</div>
@@ -570,6 +589,10 @@ export default function ImagineLab() {
 
   // Open with a worked example so a new user never lands on the blank/faded graph: auto-pin a
   // curated starter that predicts a temperate (inviting) climate at the default atmosphere.
+  // avoidStarter: the world whose unpinning just emptied the lab — re-seed with a DIFFERENT
+  // one so the remove button visibly does something (otherwise the same world reappears and
+  // the click reads as dead).
+  const avoidStarter = useRef<string | null>(null);
   useEffect(() => {
     if (autoStarted || !nasa || !sims || !meta || pinned.length > 0) return;
     const byName = new Map(translatable.map((w) => [w.name, w]));
@@ -579,7 +602,9 @@ export default function ImagineLab() {
     // prefer a temperate world (greenest — closest to ~293 K); else the warmest below scorching
     const temperate = scored.filter((x) => x.m >= 273 && x.m <= 318).sort((a, b) => Math.abs(a.m - 293) - Math.abs(b.m - 293));
     const warmest = scored.filter((x) => x.m < 320).sort((a, b) => b.m - a.m);
-    const starter = (temperate[0] ?? warmest[0])?.w ?? curated[0] ?? translatable[0];
+    const ranked = [...temperate, ...warmest].map((x) => x.w).concat(curated, translatable.slice(0, 1));
+    const starter = ranked.find((w) => w && w.name !== avoidStarter.current) ?? ranked[0];
+    avoidStarter.current = null;
     if (starter) { setPinned([starter]); setSelected(starter); }
     setAutoStarted(true);
   }, [autoStarted, nasa, sims, meta, pinned, translatable, atm]);
@@ -588,7 +613,15 @@ export default function ImagineLab() {
 
   const pick = (w: World) => { setPinned((ps) => (ps.some((p) => p.name === w.name) ? ps : [...ps, w])); setSelected(w); setFinder(null); };
   const togglePin = (w: World) => setPinned((ps) => {
-    if (ps.some((p) => p.name === w.name)) { const next = ps.filter((p) => p.name !== w.name); if (selected?.name === w.name) setSelected(next[next.length - 1] ?? null); return next; }
+    if (ps.some((p) => p.name === w.name)) {
+      const next = ps.filter((p) => p.name !== w.name);
+      if (selected?.name === w.name) setSelected(next[next.length - 1] ?? null);
+      // Emptying the lab returns it to the worked-example opener (never a dead end):
+      // close any lingering sim card and let the auto-pin effect re-seed a starter —
+      // a different one than was just removed, so the click visibly does something.
+      if (next.length === 0) { setSimDetail(null); avoidStarter.current = w.name; setAutoStarted(false); }
+      return next;
+    }
     return [...ps, w];
   });
   const surprise = () => { const w = translatable[Math.floor(Math.random() * translatable.length)]; if (w) pick(w); };
@@ -631,6 +664,7 @@ export default function ImagineLab() {
         .lab .labcard-say { font-size: 12.5px; line-height: 1.55; color: var(--text-dim); margin: 8px 0 12px; }
         .lab .labcard-say b { color: var(--text); font-weight: 500; }
         .lab .labcard-map { display: flex; flex-direction: column; gap: 6px; }
+        .lab .labcard-viewtoggle { align-self: flex-start; }
         .lab .labcard-map .surfacemap { width: 100%; height: auto; border-radius: var(--radius-sm); border: 1px solid var(--border-soft); }
         .lab .labcard-maphint { font-size: 11px; color: var(--text-faint); line-height: 1.45; }
         .lab .labcard-loading { font-size: 12px; color: var(--text-faint); padding: 20px 0; text-align: center; }

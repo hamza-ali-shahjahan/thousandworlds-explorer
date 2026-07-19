@@ -7,6 +7,8 @@ import './BuildAWorld.css';
 import type { TwWorld } from './ThousandWorlds';
 import type { World } from '../types';
 import { n } from '../lib/util';
+import { climateCssRamp } from '../lib/climate';
+import { useMapView } from '../lib/useMapView';
 import { PcaGbtEmulator, type Prediction as EmuPrediction } from '../lib/emulator';
 
 const EARTH_FLUX = 1361;
@@ -50,7 +52,7 @@ const pct = (xs: number[], p: number) => { const a = xs.slice().sort((x, y) => x
 export interface BuildParams { flux: number; pressure: number; co2: number; st_teff: number; radius: number; gravity: number; }
 // a built world the user can drop onto the Lab scatter beside the real planets (flux × pressure, coloured by predicted climate)
 export interface BuiltWorld { name: string; flux: number; pressure: number; mean: number; reg: string; }
-interface Prediction { field: Uint8Array; mean: number; lo: number; hi: number; reg: string; inEnv: boolean; outOf: string[]; n: number; d12: number; }
+interface Prediction { field: Uint8Array; kRange: [number, number]; mean: number; lo: number; hi: number; reg: string; inEnv: boolean; outOf: string[]; n: number; d12: number; }
 
 // kNN over the sims (same normalised-distance dims/weights as the Lab's translate),
 // then blend the nearest worlds' surface fields cell-by-cell.
@@ -88,12 +90,11 @@ function predictField(p: BuildParams, sims: TwWorld[], surf: Uint8Array, field: 
       wsum[c] += wt;
     }
   });
-  const out = new Uint8Array(cells);
-  for (let c = 0; c < cells; c++) {
-    if (wsum[c] === 0) { out[c] = 0; continue; }
-    const t = acc[c] / wsum[c];
-    out[c] = 1 + Math.round(clamp((clamp(t, lo, hi) - lo) / (hi - lo) * 254, 0, 254));
-  }
+  // keep the blended field in KELVIN until the very end — the star-temperature
+  // nudge below shifts it, and we pack once over the field's own [min, max]
+  // (returned as kRange) so the map keeps full contrast even inside one regime
+  const kel = new Float64Array(cells);
+  for (let c = 0; c < cells; c++) kel[c] = wsum[c] === 0 ? NaN : acc[c] / wsum[c];
 
   const temps = near.map((x) => x.s.tsurf);
   const wsumAll = wts.reduce((a, b) => a + b, 0);
@@ -111,21 +112,23 @@ function predictField(p: BuildParams, sims: TwWorld[], surf: Uint8Array, field: 
   const nbrTeff = near.reduce((a, x, idx) => a + x.s.st_teff * wts[idx], 0) / wsumAll;
   const conf = clamp(1 - (d12 - 0.30) / 0.30, 0, 1);                   // 1 in-core -> 0 by d12~0.60
   const corr = clamp(TEFF_SLOPE * (p.st_teff - nbrTeff) * conf, -30, 30);
-  const meanC = clamp(mean + corr, lo, hi);                           // clamp to the PHYSICAL field range
-  if (corr !== 0) {                                                   // shift the field by the same offset so map = headline
-    for (let c = 0; c < cells; c++) {
-      if (out[c] === 0) continue;
-      const t0 = lo + ((out[c] - 1) / 254) * (hi - lo);
-      out[c] = 1 + Math.round(clamp((clamp(t0 + corr, lo, hi) - lo) / (hi - lo) * 254, 0, 254));
-    }
-  }
+  if (corr !== 0) for (let c = 0; c < cells; c++) kel[c] += corr;      // shift the field by the same offset so map = headline
   // ---------------------------------------------------------------------------
+
+  // pack over the field's own range (kRange), not the dataset's fixed 90–400 K
+  let mn = Infinity, mx = -Infinity;
+  for (let c = 0; c < cells; c++) { const t = kel[c]; if (!Number.isNaN(t)) { if (t < mn) mn = t; if (t > mx) mx = t; } }
+  if (mn === Infinity) return null;                                    // every cell missing — nothing to show
+  const span = (mx - mn) || 1;
+  const out = new Uint8Array(cells);
+  for (let c = 0; c < cells; c++) out[c] = Number.isNaN(kel[c]) ? 0 : 1 + Math.round(((kel[c] - mn) / span) * 254);
+  const meanC = clamp(mean + corr, mn, mx);                            // headline stays inside the field it describes
 
   const outOf: string[] = [];
   const chk = (label: string, v: number, [a, b]: [number, number]) => { if (v < a || v > b) outOf.push(label); };
   chk('starlight', p.flux, R.flux); chk('pressure', p.pressure, R.pressure); chk('CO₂', p.co2, R.co2);
   chk('star temperature', p.st_teff, R.st_teff); chk('planet size', p.radius, R.radius); chk('gravity', p.gravity, R.gravity);
-  return { field: out, mean: meanC, lo: pct(temps, 0.1), hi: pct(temps, 0.9), reg: regime(meanC), inEnv: outOf.length === 0, outOf, n: k, d12 };
+  return { field: out, kRange: [mn, mx], mean: meanC, lo: pct(temps, 0.1), hi: pct(temps, 0.9), reg: regime(meanC), inEnv: outOf.length === 0, outOf, n: k, d12 };
 }
 
 // Recipes drawn from real ThousandWorlds simulations, so each lands in-distribution
@@ -143,12 +146,8 @@ export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, o
   onMeet: (w: World) => void; onAddToMap?: (b: BuiltWorld) => void; onClose: () => void;
 }) {
   const [p, setP] = useState<BuildParams>(PRESETS[0].p);
-  // Projection for the predicted map — shares the hero's remembered preference.
-  const [mapView, setMapView] = useState<'flat' | 'robinson' | 'globe'>(() => {
-    const v = localStorage.getItem('tw_hero_view');
-    return v === 'robinson' || v === 'globe' ? v : 'flat';
-  });
-  const pickMapView = (v: 'flat' | 'robinson' | 'globe') => { setMapView(v); try { localStorage.setItem('tw_hero_view', v); } catch { /* private mode */ } };
+  // Projection for the predicted map — the site-wide synced preference.
+  const [mapView, pickMapView] = useMapView();
   const [name, setName] = useState<string>(randomName);
   const [copied, setCopied] = useState(false);
   const [shareCard, setShareCard] = useState<string | null>(null);
@@ -215,7 +214,9 @@ The recipe:
   Gravity: ${p.gravity.toFixed(1)} m/s²
 
 Predicted surface: ${Math.round(pred.mean)} K (${kToC(pred.mean)}) — ${pred.reg}${pred.inEnv ? '' : ' [OUTSIDE the simulated grid — extrapolation]'}
-Surface spans ${Math.round(pred.lo)}–${Math.round(pred.hi)} K pole-to-equator${pred.inEnv ? '' : ' — extrapolating beyond the simulated grid'}${cousin ? `.\nClosest real world: ${cousin.name} (${n(cousin.radius)}× Earth, ${n(cousin.dist_ly)} ly away)` : ''}.
+${pred.source === 'pca-gbt'
+      ? `Most of the surface sits between ${Math.round(pred.lo)}–${Math.round(pred.hi)} K (10th–90th percentile)`
+      : `Nearest simulations span ${Math.round(pred.lo)}–${Math.round(pred.hi)} K`}${pred.inEnv ? '' : ' — extrapolating beyond the simulated grid'}${cousin ? `.\nClosest real world: ${cousin.name} (${n(cousin.radius)}× Earth, ${n(cousin.dist_ly)} ly away)` : ''}.
 
 ${pred.source === 'pca-gbt'
       ? 'The PCA-GBT emulator (PCA + gradient-boosted trees) — the ThousandWorlds baseline (Stevenson et al. 2026, CC-BY-4.0) — running in your browser.'
@@ -262,13 +263,18 @@ ${pred.source === 'pca-gbt'
                 ))}
               </div>
               {mapView !== 'flat' ? (
-                <ProjectedField data={pred.field} row={0} grid={field.grid} kRange={field.kRange} view={mapView} size="hero" />
+                <ProjectedField data={pred.field} row={0} grid={field.grid} kRange={pred.kRange} view={mapView} size="hero" />
               ) : (
-                <SurfaceMap data={pred.field} row={0} grid={field.grid} kRange={field.kRange} size="hero" />
+                <SurfaceMap data={pred.field} row={0} grid={field.grid} kRange={pred.kRange} size="hero" />
               )}
               {mapView === 'globe' && (
                 <div className="projfield-caption">drag to spin · ● substellar / ○ antistellar · dashed = terminator</div>
               )}
+              <div className="bw-colorbar" title="The map's color scale — this world's coldest to hottest surface cell">
+                <span>{Math.round(pred.kRange[0])} K</span>
+                <span className="bw-ramp" style={{ background: climateCssRamp(pred.kRange[0], pred.kRange[1]) }} />
+                <span>{Math.round(pred.kRange[1])} K</span>
+              </div>
               <div className="bw-readout">
                 <span className="bw-badge" style={{ color: col, borderColor: col }}>{pred.reg}</span>
                 <span className="bw-temp">Predicted surface ≈ <b style={{ color: col }}>{Math.round(pred.mean)} K ({kToC(pred.mean)})</b></span>
@@ -284,14 +290,14 @@ ${pred.source === 'pca-gbt'
                   let txt: string;
                   if (pred.source === 'pca-gbt')
                     txt = pred.inEnv
-                      ? `Surface spans ${span} pole-to-equator`
-                      : `Surface spans ${span} — extrapolating beyond the simulated grid`;
+                      ? `Most of the surface sits between ${span}`
+                      : `Most of the surface sits between ${span} — extrapolating beyond the simulated grid`;
                   else
                     txt = pred.d12 <= 0.30 && pred.inEnv
                       ? `Quick estimate · nearest simulations span ${span}`
                       : `Rough estimate · few comparable simulations here (${span}) — past the densely-simulated region, so the value flattens and is less certain`;
                   return (
-                    <span className="bw-band" title="How the prediction was made and how far it ranges across the globe">{txt}</span>
+                    <span className="bw-band" title="The middle 80% of the predicted map (10th–90th percentile); the colorbar above shows its full coldest→hottest range">{txt}</span>
                   );
                 })()}
               </div>

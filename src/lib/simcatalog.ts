@@ -5,10 +5,12 @@
 //   thousandworlds.json       per-sim scalars (params + area-weighted climate means)
 //   thousandworlds-meta.json  ranges, gcm census, and the packed-field spec
 //   tw-surface.u8.gz          uint8 truth surface-T fields; row i ↔ sims[i]
-// Fields are packed exactly like the emulator's output (0 = missing,
-// 1..255 linear over kRange), so truthField() is the ground-truth twin of
-// Prediction.field — same grid, same Kelvin decode. (Synced from the private
-// emulator repo's simcatalog.ts, adapted to the Explorer's asset names.)
+// Fields are packed 0 = missing, 1..255 linear over the dataset's FIXED
+// kRange (meta.field.kRange). NOTE: Prediction.field packs over its own
+// per-prediction kRange, so truth and prediction bytes are NOT byte-comparable
+// — compare in decoded Kelvin (truthField() already returns Kelvin). (Synced
+// from the private emulator repo's simcatalog.ts, adapted to the Explorer's
+// asset names.)
 // ---------------------------------------------------------------------------
 
 import type { BuildParams } from './emuConstants';

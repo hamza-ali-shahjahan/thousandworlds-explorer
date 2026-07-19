@@ -1,19 +1,12 @@
 import { useEffect, useRef } from 'react';
 import './SurfaceMap.css';
+import { climateRgb } from '../lib/climate';
 
 // Spatial surface-temperature map for one simulated world. Renders the 32x64 lat-lon
 // field (packed in tw-surface.u8, uint8: 0 = missing, 1..255 = linear over kRange) to a
-// canvas heatmap, colored with the same frozen -> temperate -> scorching palette as the
-// scatter dots, so a red dot opens into a red-hot surface.
-
-// Local copy of the shared climate colormap (matches ThousandWorlds.tsx / ImagineLab.tsx).
-function tColor(t: number): [number, number, number] {
-  if (t < 240) return [0x6f, 0xa8, 0xff];   // snowball
-  if (t < 273) return [0x7f, 0xcf, 0xe6];    // cold
-  if (t < 320) return [0x46, 0xd4, 0x9a];    // temperate (liquid-water band)
-  if (t < 373) return [0xf0, 0xb2, 0x4a];    // hot
-  return [0xe2, 0x4b, 0x4a];                 // scorching / steam
-}
+// canvas heatmap, colored with the continuous frozen -> temperate -> scorching ramp
+// (lib/climate.ts) anchored on the scatter dots' hues, so a red dot opens into a
+// red-hot surface AND within-regime structure stays visible.
 
 export interface FieldMeta {
   name: string;
@@ -59,7 +52,7 @@ export default function SurfaceMap({ data, row, grid, kRange, size }: {
       let r = 16, g = 20, b = 34;        // missing/sentinel -> near-background dark
       if (u !== 0) {
         const t = lo + ((u - 1) / 254) * (hi - lo);
-        [r, g, b] = tColor(t);
+        [r, g, b] = climateRgb(t);
       }
       const p = i * 4;
       img.data[p] = r; img.data[p + 1] = g; img.data[p + 2] = b; img.data[p + 3] = 255;

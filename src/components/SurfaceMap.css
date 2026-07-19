@@ -44,8 +44,9 @@
 .surfacehero-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
 .surfacehero-scale { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-faint); white-space: nowrap; }
 .surfacehero-scale i { font-style: italic; }
+/* samples lib/climate.ts's continuous ramp across the dataset's 90–400 K kRange */
 .surfacehero-scale .ramp { display: inline-block; width: 120px; height: 9px; border-radius: 5px;
-  background: linear-gradient(90deg, #6fa8ff, #7fcfe6, #46d49a, #f0b24a, #e24b4a); }
+  background: linear-gradient(90deg, #2f469e 0%, #6fa8ff 24%, #7fcfe6 54%, #46d49a 66%, #f0b24a 83%, #e45c4a 100%); }
 .surfacehero-note { font-size: 12px; color: var(--text-faint); line-height: 1.5; flex: 1 1 240px; min-width: 200px; }
 
 @media (prefers-reduced-motion: reduce) {

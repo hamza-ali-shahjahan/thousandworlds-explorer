@@ -43,6 +43,9 @@ const FSTAR_FIELDS = new Set(['asr', 'olr']);
 // Same shape BuildAWorld.predictField returns, so callers are interchangeable.
 export interface Prediction {
   field: Uint8Array;            // 32*64 uint8 (0 = missing, 1..255 over kRange)
+  kRange: [number, number];     // the packing range of `field`, kelvin — this prediction's
+                                // own [min, max], NOT the dataset's fixed 90–400 K (which
+                                // saturated any world hotter than 400 K into one flat byte)
   mean: number; lo: number; hi: number;
   reg: string; inEnv: boolean; outOf: string[];
   n: number; d12: number;
@@ -230,15 +233,15 @@ export class PcaGbtEmulator {
   async predict(p: BuildParams, field: FieldMeta, ranges: Record<string, [number, number]>, gcmIndex?: number): Promise<Prediction> {
     const { z, h } = await this.latents(p, gcmIndex);
     const [rows, cols] = field.grid; const cells = rows * cols;
-    const [lo, hi] = field.kRange;
     const raw = this.decodeRaw(z, h, this.fields.surface_temperature, cells);
+    // Pack over the prediction's OWN [min, max] (returned as kRange) — clamping to the
+    // dataset's fixed kRange flattened any world beyond it (e.g. a 430 K scorching build
+    // rendered as one featureless color because every dayside cell saturated to 255).
+    let sum = 0, mn = Infinity, mx = -Infinity;
+    for (let c = 0; c < cells; c++) { const v = raw[c]; sum += v; if (v < mn) mn = v; if (v > mx) mx = v; }
+    const span = (mx - mn) || 1;
     const out8 = new Uint8Array(cells);
-    let sum = 0;
-    for (let c = 0; c < cells; c++) {
-      const v = raw[c]; sum += v;
-      const clamped = Math.min(hi, Math.max(lo, v));
-      out8[c] = 1 + Math.round(((clamped - lo) / (hi - lo)) * 254);
-    }
+    for (let c = 0; c < cells; c++) out8[c] = 1 + Math.round(((raw[c] - mn) / span) * 254);
     const mean = sum / cells;
 
     // out-of-envelope flags reuse the explorer's range gates (parity with kNN UI);
@@ -252,7 +255,7 @@ export class PcaGbtEmulator {
     const sorted = Array.from(raw).sort((a, b) => a - b);
     const pct = (pp: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round(pp * (sorted.length - 1))))];
     return {
-      field: out8, mean, lo: pct(0.1), hi: pct(0.9),
+      field: out8, kRange: [mn, mx], mean, lo: pct(0.1), hi: pct(0.9),
       reg: regime(mean), inEnv: outOf.length === 0, outOf,
       n: cells, d12: 0, source: 'pca-gbt',
     };

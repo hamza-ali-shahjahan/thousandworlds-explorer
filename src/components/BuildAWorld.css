@@ -77,6 +77,10 @@
 
 .bw-result { display: flex; flex-direction: column; gap: 12px; }
 .bw-result .surfacemap.hero { border-radius: var(--radius-sm); border: 1px solid var(--border-soft); }
+/* colorbar under the predicted map: this world's own coldest→hottest span */
+.bw-colorbar { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-faint);
+  font-variant-numeric: tabular-nums; white-space: nowrap; margin-top: -4px; }
+.bw-colorbar .bw-ramp { flex: 1; height: 9px; border-radius: 5px; border: 1px solid var(--border-soft); }
 .bw-readout { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .bw-badge { font-size: 12px; font-weight: 500; padding: 2px 9px; border: 1px solid; border-radius: 999px; }
 .bw-temp { font-size: 14px; color: var(--text-dim); }

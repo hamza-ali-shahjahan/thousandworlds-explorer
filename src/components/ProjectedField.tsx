@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
 import './ProjectedField.css';
-import { climateRgb } from '../lib/postcard';
+import { climateRgb } from '../lib/climate';
 import { KX, robinsonAB, invLatFromY, fitRobinson, drawGraticule } from '../lib/robinson';
 
 // Projected views of the same 32x64 surface-temperature field SurfaceMap shows flat:
 // 'robinson' — the pseudo-cylindrical oval with graticule + lat/lon ticks, and
 // 'globe' — an orthographic sphere with drag-to-spin. Pure dataset visualization:
 // per-pixel inverse projection + nearest-neighbour sampling (the honest pixel look,
-// no smoothing), colored with the site-wide climate ramp so the hero matches the
-// scatter dots. Substellar (lon 0) is the center column — the sims are tidally
-// locked — so the terminator sits on the lon ±90° great circle.
+// no smoothing), colored with the site-wide continuous climate ramp (lib/climate.ts),
+// anchored on the scatter dots' regime hues. Substellar (lon 0) is the center
+// column — the sims are tidally locked — so the terminator sits on the lon ±90°
+// great circle.
 
 const DEG = Math.PI / 180;
 const SPIN_RATE = 9 * DEG;                    // auto-spin ~40 s/rev — ambient, not distracting
@@ -21,7 +22,7 @@ export default function ProjectedField({ data, row, grid, kRange, view, size = '
   grid: [number, number];
   kRange: [number, number];
   view: 'robinson' | 'globe';
-  size?: 'hero';
+  size?: 'thumb' | 'hero';
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
