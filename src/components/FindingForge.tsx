@@ -5,6 +5,7 @@ import './FindingForge.css';
 import type { TwWorld } from './ThousandWorlds';
 import type { World } from '../types';
 import { REGIMES, matchSims, testClaim, regimeOf, HIST_MIN, HIST_MAX, HIST_BINS } from '../lib/finding';
+import { track } from '../lib/track';
 import type { Conditions, Regime, TestResult, Verdict } from '../lib/finding';
 
 const REG_COLOR: Record<Regime, string> = { Frozen: '#6fa8ff', Cold: '#7fcfe6', Temperate: '#46d49a', Hot: '#f0b24a', Scorching: '#e24b4a' };
@@ -83,7 +84,11 @@ export default function FindingForge({ sims, nasa, seedName, onClose, onMeet }: 
   const claimText = `Worlds${parts.length ? ' with ' + parts.join(', ') : ''} tend to be ${REG_PHRASE[outcome]}.`;
   const ready = matchCount >= 8;
 
-  const runTest = () => setResult(testClaim(conditions, outcome, sims, nasa));
+  const runTest = () => {
+    const r = testClaim(conditions, outcome, sims, nasa);
+    track('finding_tested', { verdict: r.verdict });
+    setResult(r);
+  };
 
   const share = () => {
     if (!result) return;

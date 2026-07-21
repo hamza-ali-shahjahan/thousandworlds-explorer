@@ -8,6 +8,7 @@ import { useMapView } from '../lib/useMapView';
 import type { World } from '../types';
 import type { TwWorld } from './ThousandWorlds';
 import { n, dotRadius, fetchBinary } from '../lib/util';
+import { track } from '../lib/track';
 import playgroundDiagram from '../../docs/playground.svg';   // the README's "how it works" flow — single source of truth
 
 // ---- shared climate color/regime (matches the Simulated tab) ----
@@ -611,7 +612,7 @@ export default function ImagineLab() {
 
   if (!nasa || !sims || !meta) return <div className="loading">Loading the Imagine Lab…</div>;
 
-  const pick = (w: World) => { setPinned((ps) => (ps.some((p) => p.name === w.name) ? ps : [...ps, w])); setSelected(w); setFinder(null); };
+  const pick = (w: World) => { track('world_selected', { ds: 'lab', world: w.name }); setPinned((ps) => (ps.some((p) => p.name === w.name) ? ps : [...ps, w])); setSelected(w); setFinder(null); };
   const togglePin = (w: World) => setPinned((ps) => {
     if (ps.some((p) => p.name === w.name)) {
       const next = ps.filter((p) => p.name !== w.name);
@@ -624,13 +625,13 @@ export default function ImagineLab() {
     }
     return [...ps, w];
   });
-  const surprise = () => { const w = translatable[Math.floor(Math.random() * translatable.length)]; if (w) pick(w); };
+  const surprise = () => { track('surprise', { ds: 'lab' }); const w = translatable[Math.floor(Math.random() * translatable.length)]; if (w) pick(w); };
   // drop a built world onto the scatter (newest replaces a same-named one); close Build so the map is revealed
   const addBuilt = (b: BuiltWorld) => { setBuilt((bs) => [...bs.filter((x) => x.name !== b.name), b]); setModal(null); };
   const removeBuilt = (name: string) => setBuilt((bs) => bs.filter((x) => x.name !== name));
   // The surface-field asset (~3.4 MB) is lazy-loaded on first need — opening Build, or clicking a world to inspect.
   const ensureSurf = () => { if (!surf && meta.field) fetchBinary(`/${meta.field.asset}`).then((b) => setSurf(new Uint8Array(b))).catch(() => {}); };
-  const openBuild = () => { ensureSurf(); setModal('build'); };
+  const openBuild = () => { track('build_world_open'); ensureSurf(); setModal('build'); };
   const pickSim = (w: TwWorld, row: number) => { ensureSurf(); setSimDetail({ sim: w, row }); };
   const pickPin = (w: World) => { setSimDetail(null); setSelected(w); };
   const sel = selected;
@@ -673,7 +674,7 @@ export default function ImagineLab() {
       `}</style>
       <div className="labbar">
         <div className="labactions">
-          <button className="cta" onClick={() => setFinder({ expr: 'esi' })}>
+          <button className="cta" onClick={() => { track('lab_finder_open'); setFinder({ expr: 'esi' }); }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
             Find a world
           </button>
@@ -692,7 +693,7 @@ export default function ImagineLab() {
         </div>
         <div className="labwishes">
           <span className="labwishlabel">Show me…</span>
-          {WISHES.map((wi) => <button key={wi.expr} className="chip" onClick={() => setFinder({ expr: wi.expr })}>{wi.label}</button>)}
+          {WISHES.map((wi) => <button key={wi.expr} className="chip" onClick={() => { track('lab_wish', { wish: wi.label }); setFinder({ expr: wi.expr }); }}>{wi.label}</button>)}
           {(pinned.length > 0 || built.length > 0) && (
             <button className={`lab-solo${soloMine ? ' on' : ''}`} onClick={() => setSoloMine((s) => !s)} aria-pressed={soloMine}
               title={soloMine ? 'Bring back all the simulated worlds' : 'Hide the simulated worlds — see yours alone on the climate backdrop'}>
@@ -756,7 +757,7 @@ export default function ImagineLab() {
               <b className="lr-tval">{atm.co2.toFixed(0)}%</b>
             </div>
           )}
-          <button className="cta lr-find" onClick={() => setModal('finding')}>Could this be a find? →</button>
+          <button className="cta lr-find" onClick={() => { track('finding_forge_open'); setModal('finding'); }}>Could this be a find? →</button>
         </div>
       ) : (
         <div className="labresult labempty">

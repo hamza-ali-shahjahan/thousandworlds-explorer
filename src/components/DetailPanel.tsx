@@ -5,7 +5,7 @@ import Term from './Term';
 import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import { PcaGbtEmulator } from '../lib/emulator';
 import { downloadPostcard } from '../lib/postcard';
-import { logEvent } from '../lib/supabase';
+import { track } from '../lib/track';
 import { useAuth } from '../lib/auth';
 import { oodAssess, type OodAssessment } from '../lib/ood';
 import { loadSims, type SimCatalog } from '../lib/simcatalog';
@@ -263,8 +263,8 @@ function ModeledPortrait({ world, onOpenLab }: { world: World; onOpenLab?: () =>
                 title={user ? 'Download this modeled world as a travel-poster postcard (PNG)' : 'Sign in to download postcards — free'}
                 onClick={() => {
                   // Exploring is free; taking the image home asks for the (free) account.
-                  if (!user) { logEvent('postcard_locked', { name: w.name }); window.dispatchEvent(new Event('open-signin')); return; }
-                  logEvent('postcard', { name: w.name });
+                  if (!user) { track('postcard_locked', { name: w.name }); window.dispatchEvent(new Event('open-signin')); return; }
+                  track('postcard', { name: w.name });
                   void downloadPostcard({
                     name: w.name, field: portrait.field, grid: portrait.grid, kRange: portrait.kRange,
                     meanK: portrait.meanK, dist_ly: w.dist_ly, radius: w.radius,

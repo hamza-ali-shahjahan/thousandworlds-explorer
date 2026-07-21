@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { World } from '../types';
 import { n } from '../lib/util';
+import { track } from '../lib/track';
 
 export type View = 'map' | 'table' | 'charts' | 'shoreline';
 
@@ -19,6 +20,7 @@ interface Props {
 export default function StatBar({ total, matchCount, plottable, nearest, earthlike, onSelect, view, onView, onExport }: Props) {
   const [copied, setCopied] = useState(false);
   const share = () => {
+    track('share', { ds: 'nasa' });
     navigator.clipboard?.writeText(window.location.href).then(() => {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);

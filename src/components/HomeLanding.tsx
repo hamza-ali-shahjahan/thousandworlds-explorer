@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { logEvent } from '../lib/supabase';
+import { track } from '../lib/track';
 import './HomeLanding.css';
 
 // HomeLanding — the Explorer's public front door at the root. Anonymous
@@ -32,7 +32,7 @@ function Shot({ file, caption }: { file: string; caption: string }) {
 }
 
 export default function HomeLanding({ onLaunch }: { onLaunch: () => void }) {
-  useEffect(() => { logEvent('landing_view'); }, []);
+  useEffect(() => { track('landing_view'); }, []);
   return (
     <div className="landing">
       <main className="landing-inner">
@@ -52,7 +52,7 @@ export default function HomeLanding({ onLaunch }: { onLaunch: () => void }) {
             <span className="l-cred-item">1,659 GCM simulations · 5 climate models</span>
             <span className="l-cred-item">Runs in your browser — nothing leaves your machine</span>
           </section>
-          <button className="btn primary l-cta" type="button" onClick={onLaunch}>
+          <button className="btn primary l-cta" type="button" onClick={() => { track('landing_cta'); onLaunch(); }}>
             Launch the explorer →
           </button>
           <p className="l-free">Free to explore — sign in only to save or download.</p>

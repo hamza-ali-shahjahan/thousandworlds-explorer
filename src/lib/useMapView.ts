@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { track } from './track';
 
 // The site-wide map-projection preference (Flat | Robinson | Globe), remembered
 // in localStorage and SYNCED across every mounted picker via a same-document
@@ -24,6 +25,7 @@ export function useMapView(): [MapView, (v: MapView) => void] {
   }, []);
   const pick = (v: MapView) => {
     setView(v);
+    track('map_view_change', { view: v });
     try { localStorage.setItem(KEY, v); } catch { /* private mode */ }
     window.dispatchEvent(new CustomEvent(EVT, { detail: v }));
   };
