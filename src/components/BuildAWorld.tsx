@@ -9,6 +9,7 @@ import type { World } from '../types';
 import { n } from '../lib/util';
 import { climateCssRamp } from '../lib/climate';
 import { useMapView } from '../lib/useMapView';
+import { track } from '../lib/track';
 import { PcaGbtEmulator, type Prediction as EmuPrediction } from '../lib/emulator';
 
 const EARTH_FLUX = 1361;
@@ -202,6 +203,7 @@ export default function BuildAWorld({ sims, nasa, surf, field, ranges, onMeet, o
   const col = pred ? regimeColor(pred.mean) : '#46d49a';
 
   const copyWorld = () => {
+    track('build_world_copy');
     if (!pred) return;
     const txt = `"${name}" — a world I built · ThousandWorlds Explorer (Imagine Lab)
 
@@ -237,7 +239,7 @@ ${pred.source === 'pca-gbt'
         <div className="bw-controls">
           <div className="bw-presets">
             <span className="bw-presetlabel">Start from</span>
-            {PRESETS.map((pr) => <button key={pr.label} className="chip sm" onClick={() => setP(pr.p)}>{pr.label}</button>)}
+            {PRESETS.map((pr) => <button key={pr.label} className="chip sm" onClick={() => { track('build_world_preset', { preset: pr.label }); setP(pr.p); }}>{pr.label}</button>)}
           </div>
           {sliders.map((s) => {
             const v = clamp(p[s.k], s.r[0], s.r[1]);
@@ -303,7 +305,7 @@ ${pred.source === 'pca-gbt'
               </div>
               {!pred.inEnv && <div className="bw-warn">⚠ Outside the simulated grid ({pred.outOf.join(', ')}) — this is extrapolation, treat the prediction as a rough guess.</div>}
               {onAddToMap && (
-                <button className="bw-addmap" onClick={() => onAddToMap({ name: name.trim() || 'Your world', flux: p.flux, pressure: p.pressure, mean: pred.mean, reg: pred.reg })} title="Drop this world onto the Lab map, beside the real discovered planets">
+                <button className="bw-addmap" onClick={() => { track('build_world_pin', { regime: pred.reg }); onAddToMap({ name: name.trim() || 'Your world', flux: p.flux, pressure: p.pressure, mean: pred.mean, reg: pred.reg }); }} title="Drop this world onto the Lab map, beside the real discovered planets">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                   Pin {name.trim() || 'your world'} to the map <span className="bw-addmap-arrow" aria-hidden="true">→</span>
                 </button>
@@ -314,7 +316,7 @@ ${pred.source === 'pca-gbt'
                   <span className="bw-cousin-name">{cousin.name}</span>
                   <span className="bw-cousin-sum">{n(cousin.radius)}× Earth-size{cousin.dist_ly != null ? ` · ${n(cousin.dist_ly)} ly away` : ''}{cousin.insol != null ? ` · ${n(cousin.insol)}× our sunlight` : ''}</span>
                   <span className="bw-cousin-matched">matched by size, starlight &amp; predicted climate — a simulated analogy, not a habitability claim</span>
-                  <button className="bw-cousin-cta" onClick={() => onMeet(cousin)} title={`Explore ${cousin.name} on the map`}>
+                  <button className="bw-cousin-cta" onClick={() => { track('build_world_meet', { world: cousin.name }); onMeet(cousin); }} title={`Explore ${cousin.name} on the map`}>
                     Go meet {cousin.name} <span className="bw-cousin-arrow" aria-hidden="true">→</span>
                   </button>
                 </div>

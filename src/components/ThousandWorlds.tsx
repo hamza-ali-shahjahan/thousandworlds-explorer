@@ -9,6 +9,7 @@ import TwTable from './TwTable';
 import TwCharts from './TwCharts';
 import { n, dotRadius, downloadText, fetchBinary } from '../lib/util';
 import { useMapView } from '../lib/useMapView';
+import { track } from '../lib/track';
 
 // Plain-language decoder for the GCM (climate-model) codenames.
 const GCM_DESC: Record<string, string> = {
@@ -249,6 +250,7 @@ function DetailTw({ world, siblings, surf, field, row, onDive }: {
         <button
           className={`surfacelure${localStorage.getItem('tw_dived') === '1' ? '' : ' pulse-cue'}`}
           onClick={(e) => {
+            track('dive_in', { ds: 'tw' });
             try { localStorage.setItem('tw_dived', '1'); } catch { /* private mode */ }
             onDive(e.currentTarget.getBoundingClientRect(), row);
           }}
@@ -585,6 +587,12 @@ export default function ThousandWorlds() {
   const [climate, setClimate] = useState('all');
   const [ranges, setRanges] = useState<Record<string, Bound>>({});
   const [selected, setSelected] = useState<TwWorld | null>(null);
+  useEffect(() => {
+    if (!selected) return;
+    const t = selected.tsurf;
+    const reg = t < 240 ? 'snowball' : t < 273 ? 'cold' : t < 320 ? 'temperate' : t < 373 ? 'hot' : 'scorching';
+    track('world_selected', { ds: 'tw', regime: reg, gcm: selected.gcm });
+  }, [selected]);
   const [tourStop, setTourStop] = useState<number | null>(null);
   const [modal, setModal] = useState<'models' | 'wizard' | null>(null);
   const [surf, setSurf] = useState<Uint8Array | null>(null);
@@ -635,7 +643,7 @@ export default function ThousandWorlds() {
   const toggleGcm = (g: string) => { const s = new Set(gcms); s.has(g) ? s.delete(g) : s.add(g); setGcms(s); };
   const selectAllGcms = () => setGcms(allGcms());
   const selectNoGcms = () => setGcms(new Set());
-  const surprise = () => { const pool = worlds.filter((w) => w.pressure != null); setSelected(pool[Math.floor(Math.random() * pool.length)]); };
+  const surprise = () => { track('surprise', { ds: 'tw' }); const pool = worlds.filter((w) => w.pressure != null); setSelected(pool[Math.floor(Math.random() * pool.length)]); };
   const gotoStop = (i: number) => { const s = twStops[i]; if (!s) return; setTourStop(i); setSelected(s.world); };
   const startTour = () => { setGcms(allGcms()); setClimate('all'); setRanges({}); gotoStop(0); };
   const nextStop = () => { if (tourStop == null) return; if (tourStop >= twStops.length - 1) setTourStop(null); else gotoStop(tourStop + 1); };
@@ -648,9 +656,11 @@ export default function ThousandWorlds() {
     ];
     const esc = (v: string | number) => { const s = String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const lines = [cols.map((c) => c[0]).join(','), ...filtered.map((w) => cols.map((c) => esc(c[1](w))).join(','))];
+    track('csv_download', { ds: 'tw' });
     downloadText(`thousandworlds-${filtered.length}-sims.csv`, lines.join('\n'));
   };
   const share = () => {
+    track('share', { ds: 'tw' });
     const url = `${window.location.origin}${window.location.pathname}?ds=tw`;
     navigator.clipboard?.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }).catch(() => {});
   };

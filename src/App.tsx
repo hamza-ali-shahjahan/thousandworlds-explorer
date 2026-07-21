@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { World, Meta } from './types';
 import { TEMP_BANDS, band, worldsToCsv, downloadText, type BandLabel } from './lib/util';
+import { track, trackScreen } from './lib/track';
 import DiscoveryMap from './components/DiscoveryMap';
 import DataTable, { type Key } from './components/DataTable';
 import Charts from './components/Charts';
@@ -130,6 +131,7 @@ export default function App() {
   const [filters, setFilters] = useState<Filters | null>(null);
   const [activePreset, setActivePreset] = useState<PresetKey | null>('all');
   const [selected, setSelected] = useState<World | null>(null);
+  useEffect(() => { if (selected) track('world_selected', { ds: 'nasa', world: selected.name }); }, [selected]);
   const [view, setView] = useState<View>('map');
   const [sortKey, setSortKey] = useState<Key>('dist_ly');
   const [dir, setDir] = useState<1 | -1>(1);
@@ -140,6 +142,13 @@ export default function App() {
     return ds === 'tw' || ds === 'lab' ? ds : 'nasa';
   });
   const [tourTaken, setTourTaken] = useState<boolean>(() => !!localStorage.getItem('nasa_tour_taken'));
+  // Analytics: each tab is a virtual screen — the SPA otherwise only ever reports "/".
+  useEffect(() => {
+    trackScreen(
+      dataset === 'nasa' ? '/discovered' : dataset === 'tw' ? '/simulated' : '/lab',
+      dataset === 'nasa' ? 'Discovered · NASA' : dataset === 'tw' ? 'Simulated · ThousandWorlds' : 'Imagine · Lab',
+    );
+  }, [dataset]);
   const [citeOpen, setCiteOpen] = useState(false);
   // The landing greets fresh anonymous arrivals on a bare URL; its CTA drops
   // straight into the three tabs — exploring needs no account (sign-in guards
@@ -148,6 +157,16 @@ export default function App() {
   // ?landing=1 forces it (review). Admins additionally see the emulator pill.
   const { loading: authLoading, user, isAdmin } = useAuth();
   const [launched, setLaunched] = useState(false);
+  // Captured ONCE at mount: how this session ARRIVED. The URL-state effect below
+  // continuously rewrites location.search, so reading it per-render made
+  // `deepLink` flip to false mid-session — bouncing an anonymous deep-link
+  // visitor back to the landing the next time they switched tabs (and
+  // double-counting landing_view in analytics).
+  const [entry] = useState(() => {
+    const search = window.location.search;
+    const forceLanding = new URLSearchParams(search).get('landing') === '1';
+    return { forceLanding, deepLink: search !== '' && !forceLanding };
+  });
   const devBypass = import.meta.env.DEV && new URLSearchParams(window.location.search).has('shot');
 
   // Anonymous usage signal: one pageview on arrival, then tab switches — enough
@@ -224,11 +243,8 @@ export default function App() {
     return <div className="loading">Charting {`6,298`} worlds…</div>;
   }
   {
-    const search = window.location.search;
-    const forceLanding = new URLSearchParams(search).get('landing') === '1';
-    const deepLink = search !== '' && !forceLanding;
     const seenLanding = (() => { try { return localStorage.getItem('tw_landing_seen') === '1'; } catch { return false; } })();
-    if (!launched && !devBypass && (forceLanding || (!user && !deepLink && !seenLanding))) {
+    if (!launched && !devBypass && (entry.forceLanding || (!user && !entry.deepLink && !seenLanding))) {
       return (
         <HomeLanding
           onLaunch={() => {
@@ -245,9 +261,9 @@ export default function App() {
 
   const onSort = (k: Key) => { if (k === sortKey) setDir((dd) => (dd === 1 ? -1 : 1)); else { setSortKey(k); setDir(1); } };
   const gotoStop = (i: number) => { const r = resolveStop(i, worlds); if (!r) return; setTourStop(i); setSelected(r.world); setView('map'); };
-  const startTour = () => { localStorage.setItem('nasa_tour_taken', '1'); setTourTaken(true); setFilters(defaultFilters(meta)); setActivePreset('all'); setNavOpen(false); gotoStop(0); };
+  const startTour = () => { track('tour_started', { ds: 'nasa' }); localStorage.setItem('nasa_tour_taken', '1'); setTourTaken(true); setFilters(defaultFilters(meta)); setActivePreset('all'); setNavOpen(false); gotoStop(0); };
   const nextStop = () => { if (tourStop == null) return; if (tourStop >= TOUR.length - 1) setTourStop(null); else gotoStop(tourStop + 1); };
-  const surprise = () => { setTourStop(null); setSelected(randomWorld(worlds)); setView('map'); setNavOpen(false); };
+  const surprise = () => { track('surprise', { ds: 'nasa' }); setTourStop(null); setSelected(randomWorld(worlds)); setView('map'); setNavOpen(false); };
   const wotdPick = () => {
     worldOfTheDay().then((d) => {
       const world = d && worlds.find((x) => x.name === d.name);
@@ -315,7 +331,7 @@ export default function App() {
             total={meta.total} matchCount={filtered.length} plottable={stats.plottable}
             nearest={stats.nearest} earthlike={stats.earthlike} onSelect={setSelected}
             view={view} onView={setView}
-            onExport={() => downloadText(`thousandworlds-${filtered.length}-worlds.csv`, worldsToCsv(filtered))}
+            onExport={() => { track('csv_download', { ds: 'nasa' }); downloadText(`thousandworlds-${filtered.length}-worlds.csv`, worldsToCsv(filtered)); }}
           />
           {tourStop != null && (() => {
             const r = resolveStop(tourStop, worlds);
