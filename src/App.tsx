@@ -157,17 +157,32 @@ export default function App() {
   // ?landing=1 forces it (review). Admins additionally see the emulator pill.
   const { loading: authLoading, user, isAdmin } = useAuth();
   const [launched, setLaunched] = useState(false);
-  // Captured ONCE at mount: how this session ARRIVED. The URL-state effect below
-  // continuously rewrites location.search, so reading it per-render made
-  // `deepLink` flip to false mid-session — bouncing an anonymous deep-link
-  // visitor back to the landing the next time they switched tabs (and
-  // double-counting landing_view in analytics).
+  // Routing is PATH-based and deterministic: "/" is always the landing (for
+  // anonymous arrivals), "/explore" is always the app. Captured ONCE at mount —
+  // the URL-state effect below rewrites location continuously, so per-render
+  // reads made the gate flip mid-session (the old localStorage+query heuristic
+  // felt like a coin flip). Legacy shared links ("/?sel=…") still open the app:
+  // any meaningful param counts as a deep link and gets normalized to /explore.
   const [entry] = useState(() => {
-    const search = window.location.search;
-    const forceLanding = new URLSearchParams(search).get('landing') === '1';
-    return { forceLanding, deepLink: search !== '' && !forceLanding };
+    const sp = new URLSearchParams(window.location.search);
+    const forceLanding = sp.get('landing') === '1';
+    sp.delete('landing');
+    return { path: window.location.pathname, forceLanding, deepLink: [...sp.keys()].length > 0 };
   });
   const devBypass = import.meta.env.DEV && new URLSearchParams(window.location.search).has('shot');
+  const showLanding = !authLoading && !launched && !devBypass &&
+    (entry.forceLanding || (entry.path !== '/explore' && !entry.deepLink && !user));
+  // Once the app (not the landing) is what's showing, make the URL say so —
+  // /explore, params preserved — so bookmarks/reloads land deterministically.
+  useEffect(() => {
+    if (authLoading || showLanding) return;
+    if (window.location.pathname !== '/explore') {
+      const sp = new URLSearchParams(window.location.search);
+      sp.delete('landing');
+      const qs = sp.toString();
+      window.history.replaceState(null, '', `/explore${qs ? `?${qs}` : ''}`);
+    }
+  }, [authLoading, showLanding]);
 
   // Anonymous usage signal: one pageview on arrival, then tab switches — enough
   // to know the site is alive and which tab people actually use (see privacy page).
@@ -242,18 +257,15 @@ export default function App() {
   if (authLoading) {
     return <div className="loading">Charting {`6,298`} worlds…</div>;
   }
-  {
-    const seenLanding = (() => { try { return localStorage.getItem('tw_landing_seen') === '1'; } catch { return false; } })();
-    if (!launched && !devBypass && (entry.forceLanding || (!user && !entry.deepLink && !seenLanding))) {
-      return (
-        <HomeLanding
-          onLaunch={() => {
-            try { localStorage.setItem('tw_landing_seen', '1'); } catch { /* private mode */ }
-            setLaunched(true);
-          }}
-        />
-      );
-    }
+  if (showLanding) {
+    return (
+      <HomeLanding
+        onLaunch={() => {
+          window.history.replaceState(null, '', '/explore');
+          setLaunched(true);
+        }}
+      />
+    );
   }
   if (!worlds || !meta || !filters) {
     return <div className="loading">Charting {`6,298`} worlds…</div>;

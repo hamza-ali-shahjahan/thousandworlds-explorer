@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { track } from '../lib/track';
 import './HomeLanding.css';
 
@@ -31,6 +31,40 @@ function Shot({ file, caption }: { file: string; caption: string }) {
   );
 }
 
+// One big screenshot at a time — scroll-snap carousel, no library. Swipe,
+// arrows, dots, arrow keys; no auto-advance (respect the reader).
+function Gallery() {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [idx, setIdx] = useState(0);
+  const goTo = (i: number) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const clamped = Math.max(0, Math.min(SHOTS.length - 1, i));
+    el.scrollTo({ left: clamped * el.clientWidth, behavior: 'smooth' });
+  };
+  const onScroll = () => {
+    const el = trackRef.current;
+    if (el) setIdx(Math.round(el.scrollLeft / el.clientWidth));
+  };
+  return (
+    <section className="l-carousel" aria-label="What you'll see inside" aria-roledescription="carousel">
+      <div
+        className="l-track" ref={trackRef} onScroll={onScroll} tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'ArrowRight') goTo(idx + 1); else if (e.key === 'ArrowLeft') goTo(idx - 1); }}
+      >
+        {SHOTS.map((s) => <Shot key={s.file} {...s} />)}
+      </div>
+      <button className="l-nav l-prev" aria-label="Previous screenshot" onClick={() => goTo(idx - 1)} disabled={idx === 0}>‹</button>
+      <button className="l-nav l-next" aria-label="Next screenshot" onClick={() => goTo(idx + 1)} disabled={idx === SHOTS.length - 1}>›</button>
+      <div className="l-dots" aria-hidden="true">
+        {SHOTS.map((s, i) => (
+          <button key={s.file} className={`l-dot${i === idx ? ' on' : ''}`} tabIndex={-1} onClick={() => goTo(i)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function HomeLanding({ onLaunch }: { onLaunch: () => void }) {
   useEffect(() => { track('landing_view'); }, []);
   return (
@@ -55,12 +89,9 @@ export default function HomeLanding({ onLaunch }: { onLaunch: () => void }) {
           <button className="btn primary l-cta" type="button" onClick={() => { track('landing_cta'); onLaunch(); }}>
             Launch the explorer →
           </button>
-          <p className="l-free">Free to explore — sign in only to save or download.</p>
         </section>
 
-        <section className="l-gallery" aria-label="What you'll see inside">
-          {SHOTS.map((s) => <Shot key={s.file} {...s} />)}
-        </section>
+        <Gallery />
 
         <p className="l-note">Research-grade data, honestly framed — for exploration and education.</p>
       </main>
