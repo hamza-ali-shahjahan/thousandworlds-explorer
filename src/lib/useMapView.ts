@@ -13,7 +13,9 @@ const EVT = 'tw-view-pref';
 export function useMapView(): [MapView, (v: MapView) => void] {
   const [view, setView] = useState<MapView>(() => {
     const v = localStorage.getItem(KEY);
-    return v === 'robinson' || v === 'globe' ? v : 'flat';
+    // Robinson is the site default — whole surface visible at a glance, and it's
+    // the projection the benchmark's own figures use. Explicit choices stick.
+    return v === 'flat' || v === 'robinson' || v === 'globe' ? v : 'robinson';
   });
   useEffect(() => {
     const on = (e: Event) => {
