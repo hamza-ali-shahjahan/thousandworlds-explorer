@@ -6,6 +6,9 @@ import SurfaceMap, { type FieldMeta } from './SurfaceMap';
 import { PcaGbtEmulator } from '../lib/emulator';
 import { downloadPostcard } from '../lib/postcard';
 import { track } from '../lib/track';
+import GhostPanel from './GhostPanel';
+import ProjectedField from './ProjectedField';
+import { useMapView } from '../lib/useMapView';
 import { useAuth } from '../lib/auth';
 import { oodAssess, type OodAssessment } from '../lib/ood';
 import { loadSims, type SimCatalog } from '../lib/simcatalog';
@@ -180,6 +183,7 @@ function OodChip({ assess }: { assess: OodAssessment }) {
 
 function ModeledPortrait({ world, onOpenLab }: { world: World; onOpenLab?: () => void }) {
   const { user } = useAuth(); // downloads are the one signed-in feature here
+  const [mapView, pickMapView] = useMapView(); // Flat|Robinson|Globe — the site-wide synced preference
   const w = world;
   const key = [w.name, w.st_teff, w.insol, w.radius, w.mass, w.period].join('|');
   const [portrait, setPortrait] = useState<PortraitState>({ kind: 'loading' });
@@ -252,7 +256,18 @@ function ModeledPortrait({ world, onOpenLab }: { world: World; onOpenLab?: () =>
         const ri = regimeIdx(portrait.meanK);
         return (
           <>
-            <SurfaceMap data={portrait.field} row={0} grid={portrait.grid} kRange={portrait.kRange} size="thumb" />
+            <div className="lenstoggle dp-viewtoggle" role="tablist" aria-label="Projection">
+              {(['flat', 'robinson', 'globe'] as const).map((v) => (
+                <button key={v} role="tab" aria-selected={mapView === v} className={mapView === v ? 'on' : ''} onClick={() => pickMapView(v)}>
+                  {v === 'flat' ? 'Flat' : v === 'robinson' ? 'Robinson' : 'Globe'}
+                </button>
+              ))}
+            </div>
+            {mapView !== 'flat' ? (
+              <ProjectedField data={portrait.field} row={0} grid={portrait.grid} kRange={portrait.kRange} view={mapView} size="thumb" />
+            ) : (
+              <SurfaceMap data={portrait.field} row={0} grid={portrait.grid} kRange={portrait.kRange} size="thumb" />
+            )}
             <div className="dp-readout">
               <span className="dp-mean" style={{ color: REGIMES[ri].color }}>
                 global mean ≈ {Math.round(portrait.meanK)} K ({kToC(portrait.meanK)}) · {REGIMES[ri].label}
@@ -315,11 +330,10 @@ function ModeledPortrait({ world, onOpenLab }: { world: World; onOpenLab?: () =>
 export default function DetailPanel({ world, onOpenLab }: { world: World | null; onOpenLab?: () => void }) {
   if (!world) {
     return (
-      <section className="detail">
-        <div className="empty">
-          Click any world on the map to open its profile here —<br />size, temperature, distance, orbit, and how it compares to Earth.
-        </div>
-      </section>
+      <GhostPanel
+        prompt="Click any world on the map — its profile appears here"
+        hint="Size, temperature, distance, orbit — and for measured worlds, a physically modeled portrait of its surface."
+      />
     );
   }
   const w = world;

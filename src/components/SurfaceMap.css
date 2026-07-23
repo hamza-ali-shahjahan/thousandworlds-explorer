@@ -25,6 +25,18 @@
 }
 /* Build-a-world's projection toggle sits right above its predicted map. */
 .bw-viewtoggle { margin-bottom: 8px; align-self: flex-start; }
+
+/* The dive-in thumbnail reads as MEDIA: a persistent centered expand chip
+   (visible on touch too), brightening + growing slightly on hover. */
+.lure-map { position: relative; display: block; }
+.lure-map .projfield { border: 0; }
+.lure-expand { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
+  background: rgba(10, 14, 26, 0.62); border: 1px solid rgba(217, 230, 255, 0.55);
+  color: #eaf1ff; font-size: 19px; pointer-events: none;
+  transition: transform 0.15s ease, background-color 0.15s ease; }
+.surfacelure:hover .lure-expand { transform: translate(-50%, -50%) scale(1.12); background: rgba(30, 48, 92, 0.78); }
+.surfacelure:hover .surfacemap, .surfacelure:hover .projfield canvas { filter: brightness(1.09); }
 .lurehint { display: block; font-size: 11.5px; line-height: 1.5; color: var(--text-faint); margin-top: 7px; }
 
 .surfacehero-backdrop {

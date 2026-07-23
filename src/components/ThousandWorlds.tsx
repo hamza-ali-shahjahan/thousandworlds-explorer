@@ -10,6 +10,7 @@ import TwCharts from './TwCharts';
 import { n, dotRadius, downloadText, fetchBinary } from '../lib/util';
 import { useMapView } from '../lib/useMapView';
 import { track } from '../lib/track';
+import GhostPanel from './GhostPanel';
 
 // Plain-language decoder for the GCM (climate-model) codenames.
 const GCM_DESC: Record<string, string> = {
@@ -232,7 +233,13 @@ function DetailTw({ world, siblings, surf, field, row, onDive }: {
   surf: Uint8Array | null; field: FieldMeta | null; row: number | null;
   onDive: (rect: DOMRect, row: number) => void;
 }) {
-  if (!world) return <section className="detail"><div className="empty">Click a simulated world to see the planet it started from and the climate the physics produced.</div></section>;
+  const [thumbView] = useMapView(); // before any early return — hooks rules
+  if (!world) return (
+    <GhostPanel
+      prompt="Click a simulated world — its climate appears here"
+      hint="The planet it started from, and the surface the physics produced — dive in to enlarge it."
+    />
+  );
   const w = world;
   const dot = (t: number) => ({ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: tColor(t), marginRight: 7 } as const);
   return (
@@ -256,9 +263,20 @@ function DetailTw({ world, siblings, surf, field, row, onDive }: {
           }}
           aria-label="Open this world’s surface climate map"
         >
-          {/* The whole card glows until the user has dived once — then it's learned. */}
+          {/* The whole card glows until the user has dived once — then it's learned.
+              The thumbnail follows the site-wide projection preference (globe pref
+              renders Robinson here — a static half-sphere makes a poor thumbnail),
+              and a persistent centered expand chip makes it read as MEDIA, not
+              decoration — visible on touch too, where hover affordances don't exist. */}
           <div className="section-label" style={{ marginBottom: 6 }}>Surface climate <span className="lurecue">Dive in ⤢</span></div>
-          <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="thumb" />
+          <span className="lure-map">
+            {thumbView === 'flat' ? (
+              <SurfaceMap data={surf} row={row} grid={field.grid} kRange={field.kRange} size="thumb" />
+            ) : (
+              <ProjectedField data={surf} row={row} grid={field.grid} kRange={field.kRange} view="robinson" size="thumb" />
+            )}
+            <span className="lure-expand" aria-hidden="true">⤢</span>
+          </span>
           <span className="lurehint">The temperature across this world — hottest toward its star, coldest on the far side. Tap to enlarge.</span>
         </button>
       )}
