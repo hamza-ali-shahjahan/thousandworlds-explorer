@@ -3,7 +3,8 @@
   "rewrites": [
     { "source": "/emulator", "destination": "https://thousandworlds-emulator-hamzas-projects-aec1699a.vercel.app/emulator" },
     { "source": "/emulator/", "destination": "https://thousandworlds-emulator-hamzas-projects-aec1699a.vercel.app/emulator" },
-    { "source": "/emulator/:path*", "destination": "https://thousandworlds-emulator-hamzas-projects-aec1699a.vercel.app/emulator/:path*" }
+    { "source": "/emulator/:path*", "destination": "https://thousandworlds-emulator-hamzas-projects-aec1699a.vercel.app/emulator/:path*" },
+    { "source": "/explore", "destination": "/index.html" }
   ],
   "headers": [
     {
