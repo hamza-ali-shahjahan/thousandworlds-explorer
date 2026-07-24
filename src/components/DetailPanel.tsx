@@ -243,12 +243,12 @@ function ModeledPortrait({ world, onOpenLab }: { world: World; onOpenLab?: () =>
       {portrait.kind === 'loading' && <div className="dp-quiet">modeling this world&rsquo;s surface…</div>}
 
       {portrait.kind === 'nodata' && (
-        <div className="dp-quiet">needs measured {portrait.missing.join(', ')} to place this world in the simulator&rsquo;s input space — no honest portrait possible.</div>
+        <div className="dp-quiet">needs measured {portrait.missing.join(', ')} to place this world in the simulator&rsquo;s input space — no honest surface map to show or project.</div>
       )}
 
       {portrait.kind === 'out' && (
         <div className="dp-quiet" title={`OOD distance ${portrait.ood.distance.toFixed(2)} > out-threshold ${portrait.ood.thresholds.out.toFixed(2)} (farther from every simulation than virtually any training world)`}>
-          outside the simulated envelope — no honest portrait possible.
+          outside the simulated envelope — the simulations don&rsquo;t cover worlds like this, so there&rsquo;s no honest surface map to show or project.
         </div>
       )}
 
