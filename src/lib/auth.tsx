@@ -4,6 +4,20 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, supabaseConfigured } from './supabase';
+import { AGE_MESSAGES, checkBirthYear, rememberAgeRefusal } from './legal';
+
+// Google sign-in leaves the page, so the age confirmation rides across the
+// redirect in sessionStorage and is written to the account when it returns.
+const PENDING_AGE_KEY = 'tw_age_confirmed_pending';
+
+// The neutral age question, checked again here so no caller can skip it.
+// Under-age: refuse, remember for the session, and never call Supabase.
+function ageError(birthYear: string): string | null {
+  const verdict = checkBirthYear(birthYear);
+  if (verdict === 'ok') return null;
+  if (verdict === 'refused') rememberAgeRefusal();
+  return AGE_MESSAGES[verdict];
+}
 
 export interface Profile {
   id: string;
@@ -18,8 +32,8 @@ interface AuthState {
   user: User | null;
   profile: Profile | null;
   isAdmin: boolean;
-  signIn: (email: string) => Promise<{ error: string | null }>;
-  signInWithGoogle: () => Promise<{ error: string | null }>;
+  signIn: (email: string, birthYear: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: (birthYear: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -44,6 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
+  // Back from Google: record the age confirmation given before the redirect.
+  useEffect(() => {
+    if (!supabase || !user) return;
+    let year: string | null = null;
+    try { year = sessionStorage.getItem(PENDING_AGE_KEY); sessionStorage.removeItem(PENDING_AGE_KEY); } catch { /* storage blocked */ }
+    if (year && !user.user_metadata?.age_confirmed) {
+      void supabase.auth.updateUser({ data: { age_confirmed: true, birth_year: Number(year) } });
+    }
+  }, [user]);
+
   // Load the user's profile (display name + admin flag) whenever they change.
   useEffect(() => {
     if (!supabase || !user) { setProfile(null); return; }
@@ -63,16 +87,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     profile,
     isAdmin: Boolean(profile?.is_admin),
-    async signIn(email: string) {
+    async signIn(email: string, birthYear: string) {
       if (!supabase) return { error: 'Accounts are not configured yet.' };
+      const ageErr = ageError(birthYear);
+      if (ageErr) return { error: ageErr };
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: { emailRedirectTo: window.location.origin },
+        options: {
+          emailRedirectTo: window.location.origin,
+          // Stored as user metadata on sign-up.
+          data: { age_confirmed: true, birth_year: Number(birthYear.trim()) },
+        },
       });
       return { error: error ? error.message : null };
     },
-    async signInWithGoogle() {
+    async signInWithGoogle(birthYear: string) {
       if (!supabase) return { error: 'Accounts are not configured yet.' };
+      const ageErr = ageError(birthYear);
+      if (ageErr) return { error: ageErr };
+      try { sessionStorage.setItem(PENDING_AGE_KEY, birthYear.trim()); } catch { /* storage blocked */ }
       // Full-page redirect to Google, then back to the app (origin must be in
       // Supabase's redirect allow-list — same one the magic link uses).
       const { error } = await supabase.auth.signInWithOAuth({

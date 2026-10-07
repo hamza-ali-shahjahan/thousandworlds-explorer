@@ -2,6 +2,7 @@
 // explorer is unchanged in anonymous/local mode. Passwordless magic-link sign in.
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth';
+import { AGE_MESSAGES, ageRefusedThisSession, checkBirthYear, rememberAgeRefusal } from '../lib/legal';
 
 export default function AuthMenu() {
   const { configured, loading, user, profile, isAdmin, signIn, signInWithGoogle, signOut } = useAuth();
@@ -11,6 +12,8 @@ export default function AuthMenu() {
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [birthYear, setBirthYear] = useState('');
+  const [ageRefused, setAgeRefused] = useState(ageRefusedThisSession);
 
   // A "Save" button anywhere can ask us to open the sign-in modal.
   useEffect(() => {
@@ -21,17 +24,29 @@ export default function AuthMenu() {
 
   if (!configured || loading) return null;
 
+  // The neutral age question gates both sign-in buttons. Under-age: nothing
+  // is sent anywhere, and the refusal sticks for this browser session.
+  function ageOk(): boolean {
+    const verdict = checkBirthYear(birthYear);
+    if (verdict === 'ok') return true;
+    if (verdict === 'refused') { rememberAgeRefusal(); setAgeRefused(true); }
+    setErr(AGE_MESSAGES[verdict]);
+    return false;
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!ageOk()) return;
     setBusy(true); setErr(null);
-    const { error } = await signIn(email);
+    const { error } = await signIn(email, birthYear);
     setBusy(false);
     if (error) setErr(error); else setSent(true);
   }
 
   async function googleSignIn() {
+    if (!ageOk()) return;
     setBusy(true); setErr(null);
-    const { error } = await signInWithGoogle();
+    const { error } = await signInWithGoogle(birthYear);
     // On success the browser redirects to Google; only reachable here on error.
     if (error) { setErr(error); setBusy(false); }
   }
@@ -47,11 +62,19 @@ export default function AuthMenu() {
             <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
               <button className="auth-x" aria-label="Close" onClick={() => setOpen(false)}>×</button>
               <h3 className="auth-h">Sign in to save &amp; share</h3>
-              {sent ? (
+              {ageRefused ? (
+                <p className="auth-sub" role="alert">{AGE_MESSAGES.refused}</p>
+              ) : sent ? (
                 <p className="auth-sub">Check <b>{email}</b> for a one-tap sign-in link. You can close this.</p>
               ) : (
                 <>
                   <p className="auth-sub">One tap with Google, or we email you a secure link. Browsing stays anonymous unless you sign in.</p>
+                  <label className="auth-label" htmlFor="auth-birth-year">Year of birth</label>
+                  <input
+                    id="auth-birth-year" className="auth-input auth-year" type="text" inputMode="numeric"
+                    pattern="[0-9]{4}" maxLength={4} required placeholder="YYYY" autoComplete="bday-year"
+                    value={birthYear} onChange={(e) => setBirthYear(e.target.value)}
+                  />
                   <button className="auth-google" type="button" onClick={googleSignIn} disabled={busy}>
                     <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                       <path fill="#4285F4" d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" />
@@ -64,7 +87,7 @@ export default function AuthMenu() {
                   <div className="auth-or"><span>or</span></div>
                   <form onSubmit={submit}>
                     <input
-                      className="auth-input" type="email" required autoFocus placeholder="you@email.com"
+                      className="auth-input" type="email" required placeholder="you@email.com"
                       value={email} onChange={(e) => setEmail(e.target.value)}
                     />
                     {err && <p className="auth-err">{err}</p>}
